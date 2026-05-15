@@ -1,0 +1,52 @@
+{
+  "name": "@quantpartners/pca",
+  "version": "0.1.0",
+  "description": "Persistent Context Architecture CLI for AI-native development",
+  "type": "module",
+  "bin": {
+    "pca": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    ".env.example"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepack": "npm run build",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "keywords": [
+    "pca",
+    "persistent-context",
+    "rag",
+    "cli",
+    "ai",
+    "codex",
+    "context",
+    "vector-store",
+    "openai"
+  ],
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "dotenv": "^17.4.2",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.5",
+    "openai": "^6.37.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.15.0",
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
