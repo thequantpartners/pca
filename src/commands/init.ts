@@ -2,8 +2,10 @@ import path from "node:path";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { getProjectRoot, requireOpenAIKey, saveConfig, type PCAConfig } from "../core/config.js";
+import { requireAuthSession } from "../core/auth.js";
+import { getProjectRoot, saveConfig, type PCAProjectConfig } from "../core/config.js";
 import { slugify, writeFileIfMissing } from "../core/files.js";
+import { ensureValidOpenAIKey } from "../core/openai-key.js";
 import { createVectorStore } from "../core/openai.js";
 import { agentsTemplate } from "../templates/agents.js";
 import { coreDocs, projectReadmeTemplate } from "../templates/docs.js";
@@ -28,7 +30,8 @@ export function registerInitCommand(program: Command): void {
         );
       }
 
-      requireOpenAIKey();
+      requireAuthSession();
+      await ensureValidOpenAIKey();
 
       const projectName = options.name ?? path.basename(root);
       const projectSlug = slugify(projectName);
@@ -62,15 +65,13 @@ export function registerInitCommand(program: Command): void {
       await writeTracked(root, "pca/prd/.gitkeep", "", created, skipped);
       await writeTracked(root, "pca/decisions/.gitkeep", "", created, skipped);
 
-      const config: PCAConfig = {
+      const now = new Date().toISOString();
+      const config: PCAProjectConfig = {
         projectName,
         projectSlug,
         vectorStoreId,
-        createdAt: new Date().toISOString(),
-        runtime: "openai-vector-store",
-        ragRequired: true,
-        defaultAgent: "codex",
-        visualMemory: true,
+        createdAt: now,
+        updatedAt: now,
       };
 
       await saveConfig(config, root);

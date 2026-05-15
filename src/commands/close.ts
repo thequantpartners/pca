@@ -4,7 +4,8 @@ import { stdin as input, stdout as output } from "node:process";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { getProjectRoot, loadConfig, requireOpenAIKey } from "../core/config.js";
+import { requireAuthSession } from "../core/auth.js";
+import { getProjectRoot, loadConfig } from "../core/config.js";
 import { dateStamp, timestampForLog } from "../core/files.js";
 
 export function registerCloseCommand(program: Command): void {
@@ -14,7 +15,7 @@ export function registerCloseCommand(program: Command): void {
     .action(async () => {
       const root = getProjectRoot();
       await loadConfig(root);
-      requireOpenAIKey();
+      requireAuthSession();
 
       const lastContextPath = path.join(root, ".pca", "last-task-context.md");
       if (await fs.pathExists(lastContextPath)) {

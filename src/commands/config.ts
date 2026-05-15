@@ -1,13 +1,15 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { getProjectRoot, hasOpenAIKey, maskOpenAIKey } from "../core/config.js";
-import { clearOpenAIKey, getAPIKeyStatus, getStoredOpenAIKey, saveOpenAIKey } from "../core/env-file.js";
-import { promptSecret } from "../core/prompt.js";
+import { getAuthPath, loadAuthSession } from "../core/auth.js";
+import { getGlobalConfigPath, getPCAHome, loadGlobalConfig, saveGlobalConfig } from "../core/config.js";
+import { getMaskedOpenAIKey, getOpenAIKeyStatus, getSecretsPath, clearOpenAIKey } from "../core/secrets.js";
+import { runOpenAISetup } from "./setup.js";
 
 const OPENAI_KEY_NAME = "openai-api-key";
+const AUTH_BASE_URL = "auth-base-url";
 
 export function registerConfigCommand(program: Command): void {
-  const config = program.command("config").description("Manage local PCA CLI configuration");
+  const config = program.command("config").description("Manage global PCA CLI configuration");
 
   config.action(async () => {
     await printConfig();
@@ -15,70 +17,99 @@ export function registerConfigCommand(program: Command): void {
 
   config
     .command("get")
-    .description("Read a config value")
-    .argument("<key>", "Supported key: openai-api-key")
+    .description("Read a global config value")
+    .argument("<key>", "openai-api-key | auth-base-url")
     .action(async (key: string) => {
-      assertSupportedKey(key);
-      const storedKey = await getStoredOpenAIKey(getProjectRoot());
-      const runtimeKey = process.env.OPENAI_API_KEY;
-      const value = storedKey ?? runtimeKey;
-
-      if (!value) {
-        console.log("OPENAI_API_KEY is not configured.");
+      if (key === OPENAI_KEY_NAME) {
+        console.log((await getMaskedOpenAIKey()) ?? "missing");
         return;
       }
 
-      console.log(maskOpenAIKey(value));
+      if (key === AUTH_BASE_URL) {
+        console.log((await loadGlobalConfig()).authBaseUrl ?? "missing");
+        return;
+      }
+
+      throw unsupportedKey(key);
     });
 
   config
     .command("set")
-    .description("Set a config value")
-    .argument("<key>", "Supported key: openai-api-key")
-    .argument("[value]", "Value to save. If omitted, PCA prompts securely.")
+    .description("Set a global config value")
+    .argument("<key>", "openai-api-key | auth-base-url")
+    .argument("[value]", "Value to save")
     .action(async (key: string, value?: string) => {
-      assertSupportedKey(key);
-      const apiKey = value?.trim() || (await promptSecret("OpenAI API key: "));
-      const envPath = await saveOpenAIKey(apiKey, getProjectRoot());
+      if (key === OPENAI_KEY_NAME) {
+        await runOpenAISetup(value);
+        return;
+      }
 
-      console.log(chalk.green("OPENAI_API_KEY saved."));
-      console.log(`File: ${envPath}`);
-      console.log(`Key: ${maskOpenAIKey(apiKey)}`);
+      if (key === AUTH_BASE_URL) {
+        const url = value?.trim();
+        if (!url) {
+          throw new Error("auth-base-url value is required.");
+        }
+        const existing = await loadGlobalConfig();
+        await saveGlobalConfig({ ...existing, authBaseUrl: url });
+        console.log(chalk.green("PCA auth base URL saved."));
+        console.log(url);
+        return;
+      }
+
+      throw unsupportedKey(key);
     });
 
   config
     .command("clear")
-    .description("Clear a config value from the local .env file")
-    .argument("<key>", "Supported key: openai-api-key")
+    .description("Clear a global config value")
+    .argument("<key>", "openai-api-key | auth-base-url")
     .action(async (key: string) => {
-      assertSupportedKey(key);
-      const envPath = await clearOpenAIKey(getProjectRoot());
-      console.log(chalk.green("OPENAI_API_KEY removed from local .env."));
-      console.log(`File: ${envPath}`);
+      if (key === OPENAI_KEY_NAME) {
+        await clearOpenAIKey();
+        console.log(chalk.green("OPENAI_API_KEY removed from global PCA credentials."));
+        return;
+      }
+
+      if (key === AUTH_BASE_URL) {
+        const existing = await loadGlobalConfig();
+        delete existing.authBaseUrl;
+        await saveGlobalConfig(existing);
+        console.log(chalk.green("PCA auth base URL removed."));
+        return;
+      }
+
+      throw unsupportedKey(key);
     });
 }
 
 async function printConfig(): Promise<void> {
-  const status = await getAPIKeyStatus(getProjectRoot());
+  const session = await loadAuthSession();
+  const globalConfig = await loadGlobalConfig();
+  const keyStatus = await getOpenAIKeyStatus();
 
   console.log(chalk.bold.cyan("PCA Config"));
   console.log("");
-  console.log(`Project .env: ${status.envPath}`);
-  console.log(`.env exists: ${status.exists ? chalk.green("yes") : chalk.yellow("no")}`);
-  console.log(`OPENAI_API_KEY: ${hasOpenAIKey() ? chalk.green("configured") : chalk.yellow("missing")}`);
-  if (status.maskedKey) {
-    console.log(`Key: ${status.maskedKey}`);
+  console.log(`PCA home: ${getPCAHome()}`);
+  console.log(`Global config: ${getGlobalConfigPath()}`);
+  console.log(`Auth session: ${getAuthPath()}`);
+  console.log(`Secrets: ${getSecretsPath()}`);
+  console.log(`PCA account: ${session?.userEmail ?? chalk.yellow("not logged in")}`);
+  console.log(`Auth base URL: ${globalConfig.authBaseUrl ?? chalk.yellow("missing")}`);
+  console.log(`OpenAI API key: ${keyStatus === "configured" ? chalk.green("configured") : chalk.yellow("missing")}`);
+  const maskedKey = await getMaskedOpenAIKey();
+  if (maskedKey) {
+    console.log(`Key: ${maskedKey}`);
   }
   console.log("");
   console.log("Commands:");
   console.log("pca login");
+  console.log("pca setup");
+  console.log("pca config set auth-base-url <url>");
   console.log("pca config set openai-api-key");
   console.log("pca config get openai-api-key");
   console.log("pca config clear openai-api-key");
 }
 
-function assertSupportedKey(key: string): void {
-  if (key !== OPENAI_KEY_NAME) {
-    throw new Error(`Unsupported config key: ${key}. Use ${OPENAI_KEY_NAME}.`);
-  }
+function unsupportedKey(key: string): Error {
+  return new Error(`Unsupported config key: ${key}. Use ${OPENAI_KEY_NAME} or ${AUTH_BASE_URL}.`);
 }

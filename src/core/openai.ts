@@ -1,6 +1,7 @@
 import { basename } from "node:path";
 import OpenAI, { toFile } from "openai";
-import { requireOpenAIKey } from "./config.js";
+import { requireAuthSession } from "./auth.js";
+import { requireOpenAIKeySync } from "./openai-key.js";
 
 export type VectorSearchResult = {
   path: string;
@@ -9,8 +10,9 @@ export type VectorSearchResult = {
 };
 
 export function getOpenAIClient(): OpenAI {
+  requireAuthSession();
   return new OpenAI({
-    apiKey: requireOpenAIKey(),
+    apiKey: requireOpenAIKeySync(),
   });
 }
 

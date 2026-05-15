@@ -1,8 +1,10 @@
 import path from "node:path";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { loadConfig, requireOpenAIKey } from "./config.js";
+import { requireAuthSession } from "./auth.js";
+import { loadConfig } from "./config.js";
 import { listSyncFiles, readMarkdownForUpload, relativePosix, timestampForLog } from "./files.js";
+import { ensureValidOpenAIKey } from "./openai-key.js";
 import { uploadMarkdownToVectorStore } from "./openai.js";
 
 export type SyncResult = {
@@ -13,7 +15,8 @@ export type SyncResult = {
 
 export async function syncMemory(root: string): Promise<SyncResult> {
   const config = await loadConfig(root);
-  requireOpenAIKey();
+  requireAuthSession();
+  await ensureValidOpenAIKey();
   const files = await listSyncFiles(root);
   const failed: Array<{ path: string; error: string }> = [];
   let syncedCount = 0;

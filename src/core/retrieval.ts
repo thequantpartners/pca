@@ -1,5 +1,7 @@
 import chalk from "chalk";
-import { loadConfig, requireOpenAIKey } from "./config.js";
+import { requireAuthSession } from "./auth.js";
+import { loadConfig } from "./config.js";
+import { ensureValidOpenAIKey } from "./openai-key.js";
 import { searchVectorStore, type VectorSearchResult } from "./openai.js";
 
 export async function retrieveContext(args: {
@@ -8,7 +10,8 @@ export async function retrieveContext(args: {
   limit: number;
 }): Promise<VectorSearchResult[]> {
   const config = await loadConfig(args.root);
-  requireOpenAIKey();
+  requireAuthSession();
+  await ensureValidOpenAIKey();
 
   try {
     return await searchVectorStore({

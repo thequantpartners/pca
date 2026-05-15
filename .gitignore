@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+.pca/auth.json
+.pca/secrets.json
 *.tgz
 *.log
 .DS_Store

@@ -1,6 +1,6 @@
 {
   "name": "@quantpartners/pca",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Persistent Context Architecture CLI for AI-native development",
   "type": "module",
   "bin": {
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc",
+    "build": "node scripts/clean-dist.js && tsc",
     "start": "node dist/index.js",
     "prepack": "npm run build",
     "pack:dry": "npm pack --dry-run"

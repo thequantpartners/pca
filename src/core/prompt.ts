@@ -2,6 +2,11 @@ import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 
 export async function promptText(question: string): Promise<string> {
+  if (!stdin.isTTY || !stdout.isTTY) {
+    stdout.write(question);
+    return "";
+  }
+
   const rl = createInterface({ input: stdin, output: stdout });
   try {
     return await rl.question(question);

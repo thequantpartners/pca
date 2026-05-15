@@ -2,7 +2,8 @@ import path from "node:path";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { getProjectRoot, loadConfig, requireOpenAIKey } from "../core/config.js";
+import { requireAuthSession } from "../core/auth.js";
+import { getProjectRoot, loadConfig } from "../core/config.js";
 import { dateStamp, toPosixPath } from "../core/files.js";
 
 type VisualType = "reference" | "screenshot" | "mockup" | "generated" | "bug";
@@ -29,7 +30,7 @@ export function registerVisualCommand(program: Command): void {
     .action(async (image: string, options: { type: string; note: string }) => {
       const root = getProjectRoot();
       await loadConfig(root);
-      requireOpenAIKey();
+      requireAuthSession();
 
       if (!VALID_TYPES.has(options.type as VisualType)) {
         throw new Error("Invalid visual type. Use reference, screenshot, mockup, generated, or bug.");

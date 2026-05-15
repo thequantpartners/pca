@@ -6,18 +6,22 @@ import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerLoginCommand } from "./commands/login.js";
+import { registerLogoutCommand } from "./commands/logout.js";
 import { registerQueryCommand } from "./commands/query.js";
+import { registerSetupCommand } from "./commands/setup.js";
 import { registerSyncCommand } from "./commands/sync.js";
 import { registerTaskCommand } from "./commands/task.js";
 import { registerVisualCommand } from "./commands/visual.js";
+import { registerWhoamiCommand } from "./commands/whoami.js";
 import { applyOpenAIKeyFlag } from "./core/config.js";
+import { PCA_VERSION } from "./core/version.js";
 
 const program = new Command();
 
 program
   .name("pca")
   .description("Persistent Context Architecture CLI")
-  .version("0.1.0")
+  .version(PCA_VERSION)
   .option("--api-key <key>", "OpenAI API key for commands that call OpenAI")
   .hook("preAction", (_thisCommand, actionCommand) => {
     const options = actionCommand.optsWithGlobals() as { apiKey?: string };
@@ -31,6 +35,9 @@ registerTaskCommand(program);
 registerVisualCommand(program);
 registerCloseCommand(program);
 registerLoginCommand(program);
+registerLogoutCommand(program);
+registerWhoamiCommand(program);
+registerSetupCommand(program);
 registerConfigCommand(program);
 registerDoctorCommand(program);
 registerHelpCommand(program);
