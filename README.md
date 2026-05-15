@@ -16,6 +16,12 @@ Create a local `.env` file with:
 OPENAI_API_KEY=sk-...
 ```
 
+Or let PCA write it for the current project:
+
+```bash
+pca login
+```
+
 ## Development
 
 ```bash
@@ -92,6 +98,21 @@ PCA reads `OPENAI_API_KEY` in this order:
 3. `.env` in the current project where you run `pca`.
 4. `.env` in this CLI project during local development.
 
+Recommended:
+
+```bash
+pca login
+```
+
+Config commands:
+
+```bash
+pca config
+pca config set openai-api-key
+pca config get openai-api-key
+pca config clear openai-api-key
+```
+
 Bash:
 
 ```bash
@@ -139,6 +160,7 @@ npm run dev -- close
 Recommended working loop:
 
 ```bash
+pca login
 pca init
 pca sync
 pca task "crear hero mobile"
@@ -159,7 +181,8 @@ pca sync
 
 - No web UI.
 - No own database.
-- No login, billing, dashboard, or multiuser support.
+- No billing, dashboard, or multiuser support.
+- Login stores only `OPENAI_API_KEY` in the current project's `.env`; it is not an OAuth flow.
 - No deep Git integration.
 - No advanced vector store deduplication or replacement yet.
 - Visual memory stores local images plus textual metadata in `pca/visual/visual-index.md`; real multimodal analysis comes in v2.

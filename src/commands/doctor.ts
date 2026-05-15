@@ -70,7 +70,7 @@ function suggestedSteps(args: {
   }
 
   if (!args.hasKey) {
-    return ["Configure OPENAI_API_KEY", "Run `pca help`"];
+    return ["Run `pca login`", "Or run `pca config set openai-api-key`"];
   }
 
   if (!args.hasConfig || !args.hasIndex || !args.hasVectorStoreId) {

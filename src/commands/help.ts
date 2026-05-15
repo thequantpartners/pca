@@ -17,6 +17,8 @@ export function registerHelpCommand(program: Command): void {
       console.log("");
       console.log(chalk.bold("Commands"));
       console.log("pca init");
+      console.log("pca login");
+      console.log("pca config");
       console.log("pca sync");
       console.log('pca query "..."');
       console.log('pca task "..."');
@@ -25,6 +27,7 @@ export function registerHelpCommand(program: Command): void {
       console.log("pca help");
       console.log("");
       console.log(chalk.bold("Recommended Flow"));
+      console.log("pca login");
       console.log("pca init");
       console.log("pca sync");
       console.log('pca task "crear hero mobile"');
@@ -37,6 +40,7 @@ export function registerHelpCommand(program: Command): void {
       console.log("- No fallback to reading the full pca/ folder.");
       console.log("- Only PCA_INDEX.md is read at task start.");
       console.log("- Vector Store is required.");
+      console.log("- Use pca login or a project .env file to configure OPENAI_API_KEY.");
       console.log("- Roadmap/changelog update only after closure confirmation.");
       console.log("");
       console.log(chalk.bold("Visual Memory"));
