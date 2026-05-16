@@ -15,6 +15,8 @@
     "dev": "tsx src/index.ts",
     "build": "node scripts/clean-dist.js && tsc",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "prepack": "npm run build",
     "pack:dry": "npm pack --dry-run"
   },

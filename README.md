@@ -65,6 +65,25 @@ Project `.pca/config.json` stores only project data:
 
 Secrets are never stored in project files.
 
+## Local Context Memory
+
+These commands are fully local and work offline. They do not require PCA auth, OpenAI API keys, Clerk, network access, or Vector Store access.
+
+```bash
+pca status
+pca commit "Documented checkout flow decision" --type decision
+pca commit "Updated onboarding context"
+pca logs
+pca logs --last 10
+pca logs --type decision
+```
+
+Context commits are stored in:
+
+```txt
+.pca/context-commits.json
+```
+
 ## Commands
 
 ```bash
@@ -75,6 +94,12 @@ pca logout
 pca whoami
 pca setup
 pca config
+pca status
+pca commit "record local context update"
+pca commit "ADR: keep Markdown as source of truth" --type decision
+pca logs
+pca logs --last 10
+pca logs --type decision
 pca init
 pca sync
 pca query "project architecture"
@@ -123,8 +148,21 @@ pca sync
 ```bash
 npm install
 npm run build
+npm run typecheck
+npm test
 node dist/index.js help
 node dist/index.js doctor
+```
+
+Windows PowerShell may block npm `.ps1` shims depending on ExecutionPolicy. Use `npm.cmd`:
+
+```powershell
+npm.cmd install
+npm.cmd run build
+npm.cmd run typecheck
+npm.cmd test
+node dist\index.js help
+node dist\index.js doctor
 ```
 
 Local global install:
@@ -134,7 +172,7 @@ npm link
 pca help
 ```
 
-Windows note:
+Windows CLI note:
 
 - PowerShell may block npm `.ps1` shims depending on ExecutionPolicy. Use `pca.cmd help`.
 - CMD can use `pca help`.

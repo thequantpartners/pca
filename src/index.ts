@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { registerCloseCommand } from "./commands/close.js";
+import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
+import { registerLogsCommand } from "./commands/logs.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerSetupCommand } from "./commands/setup.js";
+import { registerStatusCommand } from "./commands/status.js";
 import { registerSyncCommand } from "./commands/sync.js";
 import { registerTaskCommand } from "./commands/task.js";
 import { registerVisualCommand } from "./commands/visual.js";
@@ -29,6 +32,9 @@ program
   });
 
 registerInitCommand(program);
+registerStatusCommand(program);
+registerCommitCommand(program);
+registerLogsCommand(program);
 registerSyncCommand(program);
 registerQueryCommand(program);
 registerTaskCommand(program);

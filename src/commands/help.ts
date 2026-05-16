@@ -23,6 +23,9 @@ export function registerHelpCommand(program: Command): void {
       console.log("pca setup");
       console.log("pca config");
       console.log("pca sync");
+      console.log("pca status");
+      console.log('pca commit "..." --type decision');
+      console.log("pca logs --last 10");
       console.log('pca query "..."');
       console.log('pca task "..."');
       console.log('pca visual add ./image.png --type reference --note "..."');
@@ -32,6 +35,9 @@ export function registerHelpCommand(program: Command): void {
       console.log(chalk.bold("Recommended Flow"));
       console.log("pca login");
       console.log("pca init");
+      console.log("pca status");
+      console.log('pca commit "initial context snapshot"');
+      console.log("pca logs");
       console.log("pca sync");
       console.log('pca task "crear hero mobile"');
       console.log("# paste .pca/last-task-context.md into Codex");
