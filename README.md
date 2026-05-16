@@ -71,7 +71,7 @@ These commands are fully local and work offline.
 
 ### Offline init
 
-`pca init` works without PCA auth, an OpenAI API key, Clerk, a backend, or network access. In offline mode it creates a local-only PCA project, and `.pca/config.json` uses `vectorStoreId: "local-only"` until cloud/vector credentials are available. Vector store creation only happens when PCA auth and OpenAI credentials are configured.
+`pca init` works without PCA auth, an OpenAI API key, Clerk, a backend, or network access. In offline mode it creates a local-only PCA project. `.pca/config.json` keeps `vectorStoreId: "local-only"` until cloud/vector credentials are available. Vector store creation only happens after PCA auth and OpenAI credentials are configured.
 
 ```bash
 pca status
