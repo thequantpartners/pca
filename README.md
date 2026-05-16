@@ -11,6 +11,17 @@ npm install -g @quantpartners/pca
 pca help
 ```
 
+### Windows PowerShell
+
+On Windows PowerShell, `pca` may resolve to `pca.ps1` and be blocked by
+ExecutionPolicy. If that happens, use the npm command shim instead:
+
+```powershell
+pca.cmd --version
+pca.cmd setup --mode local-only
+pca.cmd init
+```
+
 ## Onboarding
 
 Start with:
