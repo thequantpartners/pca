@@ -69,7 +69,7 @@ Secrets are never stored in project files.
 
 These commands are fully local and work offline. They do not require PCA auth, OpenAI API keys, Clerk, network access, or Vector Store access.
 
-`pca init` works offline without PCA auth, an OpenAI API key, Clerk, a backend, or network access. Offline mode creates a local-only PCA project, with `.pca/config.json` using `vectorStoreId: "local-only"` until cloud/vector credentials are available. Vector Store creation only happens when PCA auth and OpenAI credentials are configured.
+`pca init` also works offline without PCA auth, an OpenAI API key, Clerk, a backend, or network access. In offline mode it creates a local-only PCA project and writes `.pca/config.json` with `vectorStoreId: "local-only"` until cloud/vector credentials are available. Vector Store creation only runs when PCA auth and OpenAI credentials are configured.
 
 ```bash
 pca status
