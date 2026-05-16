@@ -2,11 +2,12 @@ import path from "node:path";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { requireAuthSession } from "../core/auth.js";
-import { getProjectRoot, saveConfig, type PCAProjectConfig } from "../core/config.js";
+import { loadAuthSession } from "../core/auth.js";
+import { applyOpenAIKeyFlag, getProjectRoot, saveConfig, type PCAProjectConfig } from "../core/config.js";
 import { slugify, writeFileIfMissing } from "../core/files.js";
 import { ensureValidOpenAIKey } from "../core/openai-key.js";
 import { createVectorStore } from "../core/openai.js";
+import { getOpenAIKey } from "../core/secrets.js";
 import { agentsTemplate } from "../templates/agents.js";
 import { coreDocs, projectReadmeTemplate } from "../templates/docs.js";
 import { pcaIndexTemplate } from "../templates/pca-index.js";
@@ -18,6 +19,8 @@ export function registerInitCommand(program: Command): void {
     .option("--name <name>", "Project name")
     .option("--api-key <key>", "OpenAI API key for this command")
     .action(async (options: { name?: string; apiKey?: string }) => {
+      applyOpenAIKeyFlag(options.apiKey);
+
       const root = getProjectRoot();
       const indexPath = path.join(root, "PCA_INDEX.md");
 
@@ -30,15 +33,18 @@ export function registerInitCommand(program: Command): void {
         );
       }
 
-      requireAuthSession();
-      await ensureValidOpenAIKey();
-
       const projectName = options.name ?? path.basename(root);
       const projectSlug = slugify(projectName);
       const vectorStoreName = `pca_${projectSlug}`;
+      const session = await loadAuthSession();
+      const hasOpenAIKey = Boolean(await getOpenAIKey());
+      let vectorStoreId = "local-only";
 
-      console.log(chalk.cyan(`Creating OpenAI Vector Store: ${vectorStoreName}`));
-      const vectorStoreId = await createVectorStore(vectorStoreName);
+      if (session && hasOpenAIKey) {
+        await ensureValidOpenAIKey();
+        console.log(chalk.cyan(`Creating OpenAI Vector Store: ${vectorStoreName}`));
+        vectorStoreId = await createVectorStore(vectorStoreName);
+      }
 
       const created: string[] = [];
       const skipped: string[] = [];
@@ -88,7 +94,7 @@ export function registerInitCommand(program: Command): void {
 
       console.log("");
       console.log(chalk.bold("Next step:"));
-      console.log("pca sync");
+      console.log(vectorStoreId === "local-only" ? 'pca commit "initial context snapshot"' : "pca sync");
     });
 }
 

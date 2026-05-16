@@ -174,6 +174,27 @@ test("status reports local project and credential state without network calls", 
   assert.match(initialized.stdout, /OpenAI API key: present/);
 });
 
+test("init creates local memory project without auth or OpenAI", () => {
+  const root = tempDir("init-offline");
+  const env = { PCA_HOME: tempDir("home") };
+
+  const result = runCli(["init"], { cwd: root, env });
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /PCA initialized/);
+  assert.match(result.stdout, /Vector store: local-only/);
+
+  assert.ok(fs.existsSync(path.join(root, "PCA_INDEX.md")));
+  assert.ok(fs.existsSync(path.join(root, "AGENTS.md")));
+  assert.ok(fs.existsSync(path.join(root, "pca")));
+
+  const config = JSON.parse(fs.readFileSync(path.join(root, ".pca", "config.json"), "utf8"));
+  assert.equal(config.vectorStoreId, "local-only");
+
+  const status = runCli(["status"], { cwd: root, env });
+  assert.equal(status.code, 0, status.stderr);
+  assert.match(status.stdout, /Project: Initialized/);
+});
+
 test("commit records local context commits without auth or OpenAI", () => {
   const root = tempDir("commit");
   const env = { PCA_HOME: tempDir("home") };
