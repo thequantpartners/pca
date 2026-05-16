@@ -13,22 +13,89 @@ pca help
 
 ## Onboarding
 
-Recommended fresh-machine flow:
+Start with:
+
+```bash
+pca setup
+```
+
+`pca setup` is the primary onboarding command for PCA CLI 0.3.0. It supports:
+
+- `local-only`: offline local Markdown memory
+- `byok`: your own OpenAI API key for current OpenAI-backed/vector commands
+- `cloud`: PCA account/cloud sync layer
+
+### Interactive setup
+
+```bash
+pca setup
+```
+
+The guided flow detects current state and recommends the smallest useful next step.
+
+### Non-interactive setup
+
+```bash
+pca setup --mode local-only
+pca setup --mode byok --api-key <key>
+pca setup --mode cloud
+```
+
+## Modes
+
+### Local-only
+
+`local-only` requires no PCA auth, no OpenAI key, no backend, and no network access.
+
+Offline local commands:
+
+```bash
+pca init
+pca status
+pca commit "Documented checkout flow decision" --type decision
+pca logs
+```
+
+### BYOK
+
+`byok` configures a user-provided OpenAI API key for current OpenAI-backed/vector commands.
+
+```bash
+pca setup --mode byok --api-key <key>
+```
+
+`pca setup` validates the key before storing it globally. Existing project `.env` files can still be used as a source for BYOK setup.
+
+### Cloud
+
+`cloud` is the PCA account/cloud sync layer. It is not defined as a permanent requirement for user-owned OpenAI keys.
+
+Cloud setup:
+
+```bash
+pca setup --mode cloud
+```
+
+If cloud auth is configured, continue with:
 
 ```bash
 pca login
 ```
 
-`pca login` is designed to:
+For current OpenAI-backed/vector commands, you may still need BYOK today:
 
-1. Open a browser login flow for PCA.
-2. Complete Clerk Google login through a hosted PCA backend.
-3. Store the PCA CLI auth session in `~/.pca/auth.json`.
-4. Ask for an OpenAI API key when needed.
-5. Validate the key against OpenAI.
-6. Store the key in global PCA credentials.
+```bash
+pca config set openai-api-key
+```
 
-The CLI does not include Clerk secrets. A hosted PCA backend must provide the browser login and code exchange. Configure it with:
+## Auth and Credentials
+
+- Local memory commands do not require PCA auth or OpenAI.
+- `pca login` is auth-only. It opens the PCA browser login flow and stores the PCA auth session in `~/.pca/auth.json`.
+- `pca logout` clears PCA auth only by default.
+- OpenAI/BYOK credentials are stored separately from PCA auth.
+
+Cloud auth requires a hosted PCA backend. Configure it with:
 
 ```bash
 pca config set auth-base-url https://your-pca-auth-host.example
@@ -39,6 +106,8 @@ or:
 ```bash
 PCA_AUTH_BASE_URL=https://your-pca-auth-host.example pca login
 ```
+
+The CLI does not include Clerk secrets and does not ship backend auth services.
 
 ## Global Storage
 
@@ -65,38 +134,81 @@ Project `.pca/config.json` stores only project data:
 
 Secrets are never stored in project files.
 
-## Local Context Memory
+## Command Notes
 
-These commands are fully local and work offline.
+### `pca setup`
 
-### Offline init
+- Primary onboarding command
+- Supports interactive and non-interactive setup
+- Handles local-only, BYOK, and cloud guidance
 
-`pca init` works without PCA auth, an OpenAI API key, Clerk, a backend, or network access. In offline mode it creates a local-only PCA project. `.pca/config.json` keeps `vectorStoreId: "local-only"` until cloud/vector credentials are available. Vector store creation only happens after PCA auth and OpenAI credentials are configured.
+### `pca login`
+
+- Auth-only
+- Requires `auth-base-url`
+- Does not prompt for or validate an OpenAI key
+
+### `pca logout`
+
+- Clears PCA auth only by default
+- Use `pca logout --clear-openai-key` to remove stored BYOK credentials too
+
+### `pca whoami`
+
+- Shows derived mode
+- Shows offline, BYOK, and cloud readiness separately
+
+### `pca doctor`
+
+- Diagnoses project, auth, and credential state
+- Suggests next steps without treating cloud auth as a blocker for local mode
+
+### `pca config`
+
+- Default summary shows derived mode and readiness
+- `get/set/clear` behavior remains:
+  - `openai-api-key`
+  - `auth-base-url`
+
+## Typical Flows
+
+### Local-only
 
 ```bash
-pca status
-pca commit "Documented checkout flow decision" --type decision
-pca commit "Updated onboarding context"
+pca setup --mode local-only
+pca init
+pca commit "initial context snapshot"
 pca logs
-pca logs --last 10
-pca logs --type decision
 ```
 
-Context commits are stored in:
+### BYOK
 
-```txt
-.pca/context-commits.json
+```bash
+pca setup --mode byok --api-key <key>
+pca init
+pca status
+```
+
+### Cloud
+
+```bash
+pca setup --mode cloud
+pca login
+pca config set openai-api-key
+pca init
+pca sync
+pca task "crear hero mobile"
 ```
 
 ## Commands
 
 ```bash
 pca help
+pca setup
 pca doctor
 pca login
 pca logout
 pca whoami
-pca setup
 pca config
 pca status
 pca commit "record local context update"
@@ -110,41 +222,6 @@ pca query "project architecture"
 pca task "crear hero mobile"
 pca visual add ./example.png --type reference --note "landing reference"
 pca close
-```
-
-## OpenAI API Key
-
-Use:
-
-```bash
-pca setup
-```
-
-or as part of:
-
-```bash
-pca login
-```
-
-`pca setup` validates the key with real OpenAI API calls before saving it. Existing project `.env` files are only used for explicit migration:
-
-```txt
-Found OPENAI_API_KEY in project .env.
-Move it to PCA global credentials? y/N
-```
-
-PCA never deletes `.env` automatically.
-
-## Typical Flow
-
-```bash
-pca login
-pca init
-pca sync
-pca task "crear hero mobile"
-# paste .pca/last-task-context.md into Codex
-pca close
-pca sync
 ```
 
 ## Development
@@ -189,7 +266,7 @@ npm pack --dry-run
 npm publish --access public
 ```
 
-Do not publish until build and local install tests pass.
+Do not publish until build, tests, and local install checks pass.
 
 ## Limitations
 

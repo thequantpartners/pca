@@ -1,8 +1,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { getAuthPath, loadAuthSession } from "../core/auth.js";
-import { getGlobalConfigPath, getPCAHome, loadGlobalConfig, saveGlobalConfig } from "../core/config.js";
-import { getMaskedOpenAIKey, getOpenAIKeyStatus, getSecretsPath, clearOpenAIKey } from "../core/secrets.js";
+import { getGlobalConfigPath, getPCAHome, getProjectRoot, loadGlobalConfig, saveGlobalConfig } from "../core/config.js";
+import { getMaskedOpenAIKey, getOpenAIKey, getSecretsPath, clearOpenAIKey } from "../core/secrets.js";
+import { formatModeLabel, type PCAMode } from "../core/readiness.js";
+import { loadDerivedReadiness } from "../core/readiness-state.js";
 import { runOpenAISetup } from "./setup.js";
 
 const OPENAI_KEY_NAME = "openai-api-key";
@@ -83,9 +85,11 @@ export function registerConfigCommand(program: Command): void {
 }
 
 async function printConfig(): Promise<void> {
+  const root = getProjectRoot();
   const session = await loadAuthSession();
   const globalConfig = await loadGlobalConfig();
-  const keyStatus = await getOpenAIKeyStatus();
+  const key = await getOpenAIKey();
+  const readiness = await loadDerivedReadiness(root);
 
   console.log(chalk.bold.cyan("PCA Config"));
   console.log("");
@@ -93,9 +97,19 @@ async function printConfig(): Promise<void> {
   console.log(`Global config: ${getGlobalConfigPath()}`);
   console.log(`Auth session: ${getAuthPath()}`);
   console.log(`Secrets: ${getSecretsPath()}`);
+  console.log(`Mode: ${modeStatus(readiness.currentMode)}`);
+  console.log(`Offline local commands: ${readinessStatus(readiness.readiness.offlineCommandsAvailable, "available", "unavailable")}`);
+  console.log(`OpenAI/BYOK readiness: ${readinessStatus(readiness.readiness.byokConfigured, "configured", "not configured")}`);
+  console.log(
+    `Cloud auth base URL: ${readinessStatus(readiness.readiness.cloudAuthConfigured, "configured", "not configured")}`,
+  );
+  console.log(`Cloud session: ${readinessStatus(readiness.readiness.cloudSessionActive, "active", "inactive")}`);
+  console.log(
+    `Cloud/vector commands: ${readinessStatus(readiness.readiness.cloudVectorCommandsReady, "ready", "not ready")}`,
+  );
   console.log(`PCA account: ${session?.userEmail ?? chalk.yellow("not logged in")}`);
   console.log(`Auth base URL: ${globalConfig.authBaseUrl ?? chalk.yellow("missing")}`);
-  console.log(`OpenAI API key: ${keyStatus === "configured" ? chalk.green("configured") : chalk.yellow("missing")}`);
+  console.log(`OpenAI API key: ${key ? chalk.green("configured") : chalk.yellow("missing")}`);
   const maskedKey = await getMaskedOpenAIKey();
   if (maskedKey) {
     console.log(`Key: ${maskedKey}`);
@@ -112,4 +126,12 @@ async function printConfig(): Promise<void> {
 
 function unsupportedKey(key: string): Error {
   return new Error(`Unsupported config key: ${key}. Use ${OPENAI_KEY_NAME} or ${AUTH_BASE_URL}.`);
+}
+
+function readinessStatus(ok: boolean, okLabel: string, missingLabel: string): string {
+  return ok ? chalk.green(okLabel) : chalk.yellow(missingLabel);
+}
+
+function modeStatus(mode: PCAMode): string {
+  return mode === "partial" ? chalk.yellow(formatModeLabel(mode)) : chalk.green(formatModeLabel(mode));
 }

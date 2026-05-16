@@ -11,6 +11,10 @@ export async function validateOpenAIKey(apiKey: string): Promise<OpenAIKeyValida
     return { ok: false, message: "OpenAI API key cannot be empty." };
   }
 
+  if (process.env.PCA_SKIP_OPENAI_VALIDATION === "1") {
+    return { ok: true };
+  }
+
   const client = new OpenAI({ apiKey: trimmed });
 
   try {

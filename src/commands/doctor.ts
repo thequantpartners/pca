@@ -9,11 +9,12 @@ import {
   getGlobalConfigPath,
   getPCAHome,
   getProjectRoot,
-  type PCAProjectConfig,
 } from "../core/config.js";
 import { getOpenAIKey } from "../core/secrets.js";
-import { validateOpenAIKey } from "../core/openai-key.js";
 import { PCA_VERSION } from "../core/version.js";
+import { formatModeLabel, type PCADerivedReadiness, type PCAMode } from "../core/readiness.js";
+import { loadDerivedReadiness, readProjectConfigSafely } from "../core/readiness-state.js";
+import { getLocalProjectStatus } from "../core/project-status.js";
 
 export function registerDoctorCommand(program: Command): void {
   program
@@ -24,17 +25,17 @@ export function registerDoctorCommand(program: Command): void {
       const nodeOk = isNodeVersionOk(process.versions.node);
       const session = await loadAuthSession();
       const key = await getOpenAIKey();
-      const keyValidation = key ? await validateOpenAIKey(key) : undefined;
       const authBaseUrl = await getAuthBaseUrl();
+      const readiness = await loadDerivedReadiness(root);
+      const projectStatus = await getLocalProjectStatus(root);
 
       const projectConfigPath = getConfigPath(root);
       const hasProjectConfig = await fs.pathExists(projectConfigPath);
-      const projectConfig = hasProjectConfig ? await readConfigSafely(projectConfigPath) : undefined;
+      const projectConfig = hasProjectConfig ? await readProjectConfigSafely(projectConfigPath) : undefined;
       const hasIndex = await fs.pathExists(path.join(root, "PCA_INDEX.md"));
       const hasAgents = await fs.pathExists(path.join(root, "AGENTS.md"));
       const hasPcaFolder = await fs.pathExists(path.join(root, "pca"));
       const hasVectorStoreId = Boolean(projectConfig?.vectorStoreId);
-      const isPCAProject = hasProjectConfig && hasIndex && hasAgents && hasPcaFolder && hasVectorStoreId;
 
       console.log(chalk.bold.cyan("PCA Doctor"));
       console.log("");
@@ -45,8 +46,21 @@ export function registerDoctorCommand(program: Command): void {
       console.log(`Global config: ${getGlobalConfigPath()}`);
       console.log("");
 
-      console.log(chalk.bold("PCA auth session"));
-      console.log(`Session: ${session ? chalk.green("OK") : chalk.yellow("Missing")}`);
+      console.log(chalk.bold("Derived readiness"));
+      console.log(`Mode: ${modeStatus(readiness.currentMode)}`);
+      console.log(`Offline local commands: ${readinessStatus(readiness.readiness.offlineCommandsAvailable, "available", "unavailable")}`);
+      console.log(`OpenAI/BYOK readiness: ${readinessStatus(readiness.readiness.byokConfigured, "configured", "not configured")}`);
+      console.log(
+        `Cloud auth base URL: ${readinessStatus(readiness.readiness.cloudAuthConfigured, "configured", "not configured")}`,
+      );
+      console.log(`Cloud session: ${readinessStatus(readiness.readiness.cloudSessionActive, "active", "inactive")}`);
+      console.log(
+        `Cloud/vector commands: ${readinessStatus(readiness.readiness.cloudVectorCommandsReady, "ready", "not ready")}`,
+      );
+      console.log("");
+
+      console.log(chalk.bold("PCA auth"));
+      console.log(`Session: ${session ? chalk.green("present") : chalk.yellow("missing")}`);
       console.log(`Session path: ${getAuthPath()}`);
       if (session?.userEmail) {
         console.log(`Account: ${session.userEmail}`);
@@ -54,13 +68,13 @@ export function registerDoctorCommand(program: Command): void {
       console.log("");
 
       console.log(chalk.bold("OpenAI API key"));
-      console.log(`OpenAI API key: ${!key ? chalk.yellow("Missing") : keyValidation?.ok ? chalk.green("OK") : chalk.red("Invalid")}`);
-      console.log(`Validation: ${!key ? chalk.yellow("Skipped") : keyValidation?.ok ? chalk.green("Passed") : chalk.red("Failed")}`);
+      console.log(`OpenAI API key: ${key ? chalk.green("configured") : chalk.yellow("missing")}`);
+      console.log(`Validation: ${chalk.yellow("Skipped in doctor summary")}`);
       console.log("");
 
       console.log(chalk.bold("Project memory"));
       console.log(`Project root: ${root}`);
-      console.log(`PCA project: ${isPCAProject ? chalk.green("OK") : chalk.yellow("Not initialized")}`);
+      console.log(`PCA project: ${projectLabel(projectStatus.state)}`);
       console.log(`PCA_INDEX.md: ${status(hasIndex)}`);
       console.log(`AGENTS.md: ${status(hasAgents)}`);
       console.log(`.pca/config.json: ${status(hasProjectConfig)}`);
@@ -78,11 +92,7 @@ export function registerDoctorCommand(program: Command): void {
       console.log(chalk.bold("Suggested next step:"));
       for (const step of suggestedSteps({
         nodeOk,
-        loggedIn: Boolean(session),
-        hasKey: Boolean(key),
-        keyValid: keyValidation?.ok ?? false,
-        isPCAProject,
-        hasAuthBaseUrl: Boolean(authBaseUrl),
+        readiness,
       })) {
         console.log(`- ${step}`);
       }
@@ -94,45 +104,57 @@ function isNodeVersionOk(version: string): boolean {
   return major >= 20;
 }
 
-async function readConfigSafely(configPath: string): Promise<Partial<PCAProjectConfig> | undefined> {
-  try {
-    return (await fs.readJson(configPath)) as Partial<PCAProjectConfig>;
-  } catch {
-    return undefined;
-  }
-}
-
 function status(ok: boolean): string {
   return ok ? chalk.green("OK") : chalk.yellow("Missing");
 }
 
 function suggestedSteps(args: {
   nodeOk: boolean;
-  loggedIn: boolean;
-  hasKey: boolean;
-  keyValid: boolean;
-  isPCAProject: boolean;
-  hasAuthBaseUrl: boolean;
+  readiness: PCADerivedReadiness;
 }): string[] {
   if (!args.nodeOk) {
     return ["Install Node.js >= 20"];
   }
 
-  if (!args.hasAuthBaseUrl && !args.loggedIn) {
-    return ["Run `pca config set auth-base-url <url>`", "Run `pca login`"];
+  if (!args.readiness.projectInitialized) {
+    return ["Run `pca init` to enable offline local memory"];
   }
 
-  if (!args.loggedIn) {
-    return ["Run `pca login`"];
+  if (!args.readiness.readiness.byokConfigured) {
+    return ["Offline local commands are available now", "Run `pca setup` when you want OpenAI-backed commands"];
   }
 
-  if (!args.hasKey || !args.keyValid) {
-    return ["Run `pca setup`"];
+  if (!args.readiness.readiness.cloudAuthConfigured) {
+    return ["OpenAI/BYOK is configured", "Set `auth-base-url` only when you want PCA cloud auth"];
   }
 
-  if (!args.isPCAProject) {
-    return ["Run `pca init`"];
+  if (!args.readiness.readiness.cloudSessionActive) {
+    return ["Cloud auth base URL is configured", "Run `pca login` when you want PCA cloud auth"];
+  }
+
+  if (!args.readiness.readiness.cloudVectorCommandsReady) {
+    return ["Cloud auth is active", "Run `pca setup` if you need OpenAI-backed cloud/vector commands"];
   }
 
   return ["Run `pca sync`", "Run `pca task \"your task\"`"];
+}
+
+function readinessStatus(ok: boolean, okLabel: string, missingLabel: string): string {
+  return ok ? chalk.green(okLabel) : chalk.yellow(missingLabel);
+}
+
+function modeStatus(mode: PCAMode): string {
+  return mode === "partial" ? chalk.yellow(formatModeLabel(mode)) : chalk.green(formatModeLabel(mode));
+}
+
+function projectLabel(state: "initialized" | "partial" | "not-initialized"): string {
+  if (state === "initialized") {
+    return chalk.green("Initialized");
+  }
+
+  if (state === "partial") {
+    return chalk.yellow("Partially initialized");
+  }
+
+  return chalk.yellow("Not initialized");
 }
