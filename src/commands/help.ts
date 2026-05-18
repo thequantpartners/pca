@@ -17,6 +17,7 @@ export function registerHelpCommand(program: Command): void {
       console.log("");
       console.log(chalk.bold("Commands"));
       console.log("pca init");
+      console.log("pca bootstrap");
       console.log("pca login");
       console.log("pca logout");
       console.log("pca whoami");
@@ -35,6 +36,7 @@ export function registerHelpCommand(program: Command): void {
       console.log(chalk.bold("Recommended Flow"));
       console.log("pca login");
       console.log("pca init");
+      console.log("pca bootstrap");
       console.log("pca status");
       console.log('pca commit "initial context snapshot"');
       console.log("pca logs");

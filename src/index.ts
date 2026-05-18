@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
@@ -32,6 +33,7 @@ program
   });
 
 registerInitCommand(program);
+registerBootstrapCommand(program);
 registerStatusCommand(program);
 registerCommitCommand(program);
 registerLogsCommand(program);
