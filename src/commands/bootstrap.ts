@@ -62,7 +62,7 @@ export function registerBootstrapCommand(program: Command): void {
       const stackText = signals.detectedStack.length > 0 ? signals.detectedStack.join(", ") : stackAnswer?.trim() ?? "";
       const structureText = signals.detectedStructure.join(", ");
       const indexContent = [
-        `# PCA Index — ${projectName}`,
+        `# PCA Index \u2014 ${projectName}`,
         "",
         "## Project",
         projectAnswer.trim(),
