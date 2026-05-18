@@ -459,7 +459,7 @@ test("status surfaces show byok readiness with key only", () => {
   assert.match(config.stdout, /Key: \*\*\*/);
 });
 
-test("status surfaces show partial mode for auth base url without session", () => {
+test("status surfaces override doctor mode for auth base url without session", () => {
   const root = tempDir("phase2-auth-url");
   const pcaHome = tempDir("home");
   const env = { PCA_HOME: pcaHome };
@@ -473,7 +473,7 @@ test("status surfaces show partial mode for auth base url without session", () =
 
   const doctor = runCli(["doctor"], { cwd: root, env });
   assert.equal(doctor.code, 0, doctor.stderr);
-  assert.match(doctor.stdout, /Mode: partial/);
+  assert.match(doctor.stdout, /Mode: local-only/);
   assert.match(doctor.stdout, /Run `pca init` to enable offline local memory/);
 });
 

@@ -47,7 +47,7 @@ export function registerDoctorCommand(program: Command): void {
       console.log("");
 
       console.log(chalk.bold("Derived readiness"));
-      console.log(`Mode: ${modeStatus(readiness.currentMode)}`);
+      console.log(`Mode: ${modeStatus(readiness.currentMode, Boolean(session), Boolean(key))}`);
       console.log(`Offline local commands: ${readinessStatus(readiness.readiness.offlineCommandsAvailable, "available", "unavailable")}`);
       console.log(`OpenAI/BYOK readiness: ${readinessStatus(readiness.readiness.byokConfigured, "configured", "not configured")}`);
       console.log(
@@ -143,8 +143,10 @@ function readinessStatus(ok: boolean, okLabel: string, missingLabel: string): st
   return ok ? chalk.green(okLabel) : chalk.yellow(missingLabel);
 }
 
-function modeStatus(mode: PCAMode): string {
-  return mode === "partial" ? chalk.yellow(formatModeLabel(mode)) : chalk.green(formatModeLabel(mode));
+function modeStatus(mode: PCAMode, hasSession: boolean, hasKey: boolean): string {
+  const displayMode = mode === "partial" && !hasSession && !hasKey ? "local-only" : mode;
+
+  return displayMode === "partial" ? chalk.yellow(formatModeLabel(displayMode)) : chalk.green(formatModeLabel(displayMode));
 }
 
 function projectLabel(state: "initialized" | "partial" | "not-initialized"): string {
