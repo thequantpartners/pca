@@ -1,11 +1,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import { printBanner } from "../core/banner.js";
 
 export function registerHelpCommand(program: Command): void {
   program
     .command("help")
     .description("Show PCA usage guide")
     .action(() => {
+      printBanner();
       console.log(chalk.bold.cyan("PCA = Persistent Context Architecture"));
       console.log("");
       console.log("Markdown files are the source of truth.");

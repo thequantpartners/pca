@@ -17,6 +17,7 @@ import { registerSyncCommand } from "./commands/sync.js";
 import { registerTaskCommand } from "./commands/task.js";
 import { registerVisualCommand } from "./commands/visual.js";
 import { registerWhoamiCommand } from "./commands/whoami.js";
+import { printBanner } from "./core/banner.js";
 import { applyOpenAIKeyFlag } from "./core/config.js";
 import { PCA_VERSION } from "./core/version.js";
 
@@ -50,8 +51,13 @@ registerConfigCommand(program);
 registerDoctorCommand(program);
 registerHelpCommand(program);
 
-program.parseAsync(process.argv).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exitCode = 1;
-});
+if (process.argv.length <= 2) {
+  printBanner();
+  program.help();
+} else {
+  program.parseAsync(process.argv).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exitCode = 1;
+  });
+}
