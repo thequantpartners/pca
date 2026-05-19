@@ -8,18 +8,23 @@ Markdown files are the source of truth. RAG is the mandatory access layer. Agent
 
 ```bash
 npm install -g @quantpartners/pca
-pca help
 ```
 
-### Windows PowerShell
-
-On Windows PowerShell, `pca` may resolve to `pca.ps1` and be blocked by
-ExecutionPolicy. If that happens, use the npm command shim instead:
+**Windows users:** If PowerShell blocks the `pca` command, use `pca.cmd` instead:
 
 ```powershell
-pca.cmd --version
-pca.cmd setup --mode local-only
 pca.cmd init
+pca.cmd status
+```
+
+Or fix it permanently by running PowerShell as Administrator:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+```bash
+pca help
 ```
 
 ## Onboarding
