@@ -34,6 +34,7 @@ export function classifyTask(task: string): TaskType {
 }
 
 export function buildQueryOutput(query: string, results: VectorSearchResult[]): string {
+  const isLocalSearch = results.some((result) => result.source === "local");
   const sections = results.length
     ? results
         .map((result, index) => `### ${index + 1}. [${result.path}]\n${cleanChunk(result.text)}`)
@@ -44,6 +45,9 @@ export function buildQueryOutput(query: string, results: VectorSearchResult[]): 
 
 ## Query
 ${query}
+
+## Mode
+${isLocalSearch ? "local search — no vector retrieval" : "vector retrieval"}
 
 ## Retrieved Context
 

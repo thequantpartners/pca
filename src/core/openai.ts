@@ -7,6 +7,7 @@ export type VectorSearchResult = {
   path: string;
   text: string;
   score?: number;
+  source?: "vector" | "local";
 };
 
 export function getOpenAIClient(): OpenAI {

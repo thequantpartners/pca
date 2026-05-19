@@ -4,7 +4,6 @@ import { stdin as input, stdout as output } from "node:process";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { requireAuthSession } from "../core/auth.js";
 import { getProjectRoot, loadConfig } from "../core/config.js";
 import { dateStamp, timestampForLog } from "../core/files.js";
 
@@ -15,7 +14,6 @@ export function registerCloseCommand(program: Command): void {
     .action(async () => {
       const root = getProjectRoot();
       await loadConfig(root);
-      requireAuthSession();
 
       const lastContextPath = path.join(root, ".pca", "last-task-context.md");
       if (await fs.pathExists(lastContextPath)) {

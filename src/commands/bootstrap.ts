@@ -1,10 +1,11 @@
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { getConfigPath, getProjectRoot } from "../core/config.js";
 import { appendContextCommit } from "../core/context-commits.js";
-import { promptText } from "../core/prompt.js";
 
 type ProjectSignals = {
   detectedName: string | undefined;
@@ -46,53 +47,51 @@ export function registerBootstrapCommand(program: Command): void {
       console.log(`${chalk.bold("README:")} ${signals.hasReadme ? chalk.green("found") : chalk.yellow("missing")}`);
       console.log("");
       console.log(chalk.dim("PCA will ask you 5 questions to generate your initial context memory."));
-      await promptText(chalk.dim("Press Enter to start."));
 
-      const projectAnswer = await promptText(chalk.cyan("What are you building? (one sentence): "));
-      const statusAnswer = await promptText(chalk.cyan("What is already working in this project? (brief): "));
-      const stackAnswer =
-        signals.detectedStack.length === 0
-          ? await promptText(chalk.cyan("What is your main tech stack? (e.g. Next.js, Prisma, Stripe): "))
-          : undefined;
-      const decisionsAnswer = await promptText(
-        chalk.cyan("What are the most important technical or product decisions already made? (brief): "),
-      );
-      const offLimitsAnswer = await promptText(chalk.cyan("What should the AI agent NOT touch or change? (brief): "));
+      const answers = await askBootstrapQuestions(signals);
+      if (!answers) {
+        console.error("Bootstrap incomplete. Run pca bootstrap again to complete setup.");
+        process.exitCode = 1;
+        return;
+      }
 
-      const stackText = signals.detectedStack.length > 0 ? signals.detectedStack.join(", ") : stackAnswer?.trim() ?? "";
       const structureText = signals.detectedStructure.join(", ");
       const indexContent = [
         `# PCA Index \u2014 ${projectName}`,
         "",
         "## Project",
-        projectAnswer.trim(),
+        answers.project,
         "",
         "## Stack",
-        stackText,
+        answers.stack,
         "",
         "## Project Structure",
         structureText,
         "",
         "## Current Status",
-        statusAnswer.trim(),
+        answers.status,
         "",
         "## Key Decisions",
-        decisionsAnswer.trim(),
+        answers.decisions,
         "",
         "## Off-limits",
-        offLimitsAnswer.trim(),
+        answers.offLimits,
         "",
         "## Memory",
         "This file is the source of truth for PCA context memory.",
         `Updated: ${new Date().toISOString()}`,
         "",
       ].join("\n");
+      const briefContent = buildProjectBrief(projectName, answers, signals);
 
       await fs.writeFile(path.join(root, "PCA_INDEX.md"), indexContent, "utf8");
+      await fs.ensureDir(path.join(root, "pca", "core"));
+      await fs.writeFile(path.join(root, "pca", "core", "project-brief.md"), briefContent, "utf8");
       await appendContextCommit(root, "Bootstrap: initial context snapshot generated", "product");
 
       console.log("");
       console.log(chalk.green("PCA_INDEX.md updated with initial context memory."));
+      console.log(chalk.green("pca/core/project-brief.md written."));
       console.log(chalk.green("Context commit recorded."));
       console.log("");
       console.log(chalk.bold("Next steps:"));
@@ -100,6 +99,124 @@ export function registerBootstrapCommand(program: Command): void {
       console.log(chalk.cyan('  pca commit "..." --type decision   ← add more decisions as you work'));
       console.log(chalk.cyan('  pca task "your next task"          ← generate context for your AI agent'));
     });
+}
+
+type BootstrapAnswers = {
+  project: string;
+  status: string;
+  stack: string;
+  decisions: string;
+  offLimits: string;
+};
+
+async function askBootstrapQuestions(signals: ProjectSignals): Promise<BootstrapAnswers | undefined> {
+  const detectedStack = signals.detectedStack.join(", ");
+  const questions: Array<[keyof BootstrapAnswers, string]> = [
+    ["project", chalk.cyan("What are you building? (one sentence): ")],
+    ["status", chalk.cyan("What is already working in this project? (brief): ")],
+    [
+      "stack",
+      chalk.cyan(
+        detectedStack
+          ? `What is your main tech stack? (detected: ${detectedStack}; confirm or edit): `
+          : "What is your main tech stack? (e.g. Next.js, Prisma, Stripe): ",
+      ),
+    ],
+    [
+      "decisions",
+      chalk.cyan("What are the most important technical or product decisions already made? (brief): "),
+    ],
+    ["offLimits", chalk.cyan("What should the AI agent NOT touch or change? (brief): ")],
+  ];
+
+  if (!input.isTTY) {
+    return askBootstrapQuestionsFromPipe(questions);
+  }
+
+  const rl = createInterface({ input, output });
+  const answers: Partial<BootstrapAnswers> = {};
+
+  try {
+    for (const [key, question] of questions) {
+      const answer = (await rl.question(question)).trim();
+      if (!answer) {
+        return undefined;
+      }
+
+      answers[key] = answer;
+    }
+  } catch {
+    return undefined;
+  } finally {
+    rl.close();
+  }
+
+  return answers as BootstrapAnswers;
+}
+
+async function askBootstrapQuestionsFromPipe(
+  questions: Array<[keyof BootstrapAnswers, string]>,
+): Promise<BootstrapAnswers | undefined> {
+  const lines = await readStdinLines();
+  const answers: Partial<BootstrapAnswers> = {};
+
+  for (const [index, [key, question]] of questions.entries()) {
+    output.write(question);
+    const answer = lines[index]?.trim() ?? "";
+    if (!answer) {
+      output.write("\n");
+      return undefined;
+    }
+
+    output.write(`${answer}\n`);
+    answers[key] = answer;
+  }
+
+  return answers as BootstrapAnswers;
+}
+
+async function readStdinLines(): Promise<string[]> {
+  let data = "";
+  input.setEncoding("utf8");
+
+  for await (const chunk of input) {
+    data += chunk;
+  }
+
+  return data.split(/\r?\n/);
+}
+
+function buildProjectBrief(projectName: string, answers: BootstrapAnswers, signals: ProjectSignals): string {
+  const structureText = signals.detectedStructure.length > 0 ? signals.detectedStructure.join(", ") : "Not detected";
+  const readmeText = signals.readmeSnippet ? signals.readmeSnippet.trim() : "No README detected.";
+
+  return [
+    `# Project Brief - ${projectName}`,
+    "",
+    "## What We Are Building",
+    answers.project,
+    "",
+    "## Current Status",
+    answers.status,
+    "",
+    "## Stack",
+    answers.stack,
+    "",
+    "## Detected Structure",
+    structureText,
+    "",
+    "## Key Decisions",
+    answers.decisions,
+    "",
+    "## Off-limits",
+    answers.offLimits,
+    "",
+    "## README Signal",
+    readmeText,
+    "",
+    `Updated: ${new Date().toISOString()}`,
+    "",
+  ].join("\n");
 }
 
 async function isInitializedForBootstrap(root: string): Promise<boolean> {
