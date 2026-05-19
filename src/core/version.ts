@@ -1,1 +1,6 @@
-export const PCA_VERSION = "0.4.1";
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json');
+
+export const PCA_VERSION = pkg.version;
