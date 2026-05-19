@@ -5,7 +5,7 @@ import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
-import { printCommandSections, registerHelpCommand } from "./commands/help.js";
+import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
@@ -54,7 +54,6 @@ registerHelpCommand(program);
 async function main(): Promise<void> {
   if (process.argv.length <= 2) {
     printBanner();
-    printCommandSections();
     return;
   }
 
