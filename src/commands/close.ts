@@ -1,11 +1,13 @@
 import path from "node:path";
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface, type Interface } from "node:readline/promises";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { getProjectRoot, loadConfig } from "../core/config.js";
 import { dateStamp, timestampForLog } from "../core/files.js";
+
+let nonInteractivePromptLines: string[] | undefined;
 
 export function registerCloseCommand(program: Command): void {
   program
@@ -29,20 +31,26 @@ export function registerCloseCommand(program: Command): void {
 
       console.log(chalk.bold("Closure requires explicit user confirmation with SI."));
 
-      const rl = createInterface({ input, output });
+      const rl = input.isTTY ? createInterface({ input, output }) : undefined;
       try {
-        const confirmed = await rl.question("¿La tarea fue completada y confirmada con SI? (yes/no) ");
+        const confirmed = await promptClosureInput(rl, "La tarea fue completada y confirmada con SI? (SI/yes) ");
+        const normalizedConfirmation = confirmed.trim().toLowerCase();
 
-        if (!["yes", "y", "si", "sí"].includes(confirmed.trim().toLowerCase())) {
+        if (!normalizedConfirmation) {
+          failIncompleteClosure();
+          return;
+        }
+
+        if (!["yes", "y", "si", "sí"].includes(normalizedConfirmation)) {
           console.log("Closure cancelled. No PCA files were updated.");
           return;
         }
 
-        const change = await rl.question("Texto breve del cambio realizado: ");
+        const change = await promptClosureInput(rl, "Texto breve del cambio realizado: ");
         const normalizedChange = change.trim();
 
         if (!normalizedChange) {
-          console.log("Closure cancelled. Change text is required.");
+          failIncompleteClosure();
           return;
         }
 
@@ -53,9 +61,45 @@ export function registerCloseCommand(program: Command): void {
         console.log(chalk.green("PCA closure recorded."));
         console.log("Next step: pca sync");
       } finally {
-        rl.close();
+        rl?.close();
       }
     });
+}
+
+async function promptClosureInput(rl: Interface | undefined, question: string): Promise<string> {
+  if (rl) {
+    try {
+      return await rl.question(question);
+    } catch {
+      return "";
+    }
+  }
+
+  output.write(question);
+  nonInteractivePromptLines ??= splitPromptInput(await readNonInteractiveStdin());
+  return nonInteractivePromptLines.shift() ?? "";
+}
+
+async function readNonInteractiveStdin(): Promise<string> {
+  let value = "";
+  for await (const chunk of input) {
+    value += chunk.toString();
+  }
+
+  return value;
+}
+
+function splitPromptInput(value: string): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value.split(/\r?\n/u);
+}
+
+function failIncompleteClosure(): void {
+  console.error("Closure incomplete. Run pca close again to confirm.");
+  process.exitCode = 1;
 }
 
 async function appendChangelog(root: string, change: string): Promise<void> {
