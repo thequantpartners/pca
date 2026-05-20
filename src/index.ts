@@ -4,7 +4,9 @@ import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
+import { registerDiffCommand } from "./commands/diff.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
+import { registerForgetCommand } from "./commands/forget.js";
 import { registerHealthCommand } from "./commands/health.js";
 import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
@@ -46,6 +48,8 @@ registerInitCommand(program);
 registerBootstrapCommand(program);
 registerStatusCommand(program);
 registerHealthCommand(program);
+registerDiffCommand(program);
+registerForgetCommand(program);
 registerCommitCommand(program);
 registerLogsCommand(program);
 registerSyncCommand(program);
@@ -62,7 +66,7 @@ registerDoctorCommand(program);
 registerHelpCommand(program);
 
 function shouldSkipPCAAdvice(actionCommand: Command): boolean {
-  const excludedCommands = new Set(["health", "doctor", "login", "logout", "whoami", "config"]);
+  const excludedCommands = new Set(["health", "doctor", "login", "logout", "whoami", "config", "forget"]);
   let current: Command | null = actionCommand;
 
   while (current) {

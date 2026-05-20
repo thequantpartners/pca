@@ -2,7 +2,7 @@ import path from "node:path";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { requireAuthSession } from "./auth.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, saveConfig } from "./config.js";
 import { listSyncFiles, readMarkdownForUpload, relativePosix, timestampForLog } from "./files.js";
 import { ensureValidOpenAIKey } from "./openai-key.js";
 import { uploadMarkdownToVectorStore } from "./openai.js";
@@ -40,6 +40,7 @@ export async function syncMemory(root: string): Promise<SyncResult> {
   }
 
   await appendSyncLog(root, config.vectorStoreId, syncedCount, failed);
+  await saveConfig({ ...config, updatedAt: new Date().toISOString() }, root);
 
   return {
     vectorStoreId: config.vectorStoreId,
