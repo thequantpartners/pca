@@ -5,6 +5,7 @@ import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
+import { registerHealthCommand } from "./commands/health.js";
 import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerLoginCommand } from "./commands/login.js";
@@ -18,7 +19,8 @@ import { registerTaskCommand } from "./commands/task.js";
 import { registerVisualCommand } from "./commands/visual.js";
 import { registerWhoamiCommand } from "./commands/whoami.js";
 import { printBanner } from "./core/banner.js";
-import { applyOpenAIKeyFlag } from "./core/config.js";
+import { applyOpenAIKeyFlag, getProjectRoot } from "./core/config.js";
+import { printPCAAdvice } from "./core/pca-advice.js";
 import { PCA_VERSION } from "./core/version.js";
 
 const program = new Command();
@@ -31,11 +33,19 @@ program
   .hook("preAction", (_thisCommand, actionCommand) => {
     const options = actionCommand.optsWithGlobals() as { apiKey?: string };
     applyOpenAIKeyFlag(options.apiKey);
+  })
+  .hook("postAction", async (_thisCommand, actionCommand) => {
+    if (shouldSkipPCAAdvice(actionCommand)) {
+      return;
+    }
+
+    await printPCAAdvice(getProjectRoot());
   });
 
 registerInitCommand(program);
 registerBootstrapCommand(program);
 registerStatusCommand(program);
+registerHealthCommand(program);
 registerCommitCommand(program);
 registerLogsCommand(program);
 registerSyncCommand(program);
@@ -50,6 +60,21 @@ registerSetupCommand(program);
 registerConfigCommand(program);
 registerDoctorCommand(program);
 registerHelpCommand(program);
+
+function shouldSkipPCAAdvice(actionCommand: Command): boolean {
+  const excludedCommands = new Set(["health", "doctor", "login", "logout", "whoami", "config"]);
+  let current: Command | null = actionCommand;
+
+  while (current) {
+    if (excludedCommands.has(current.name())) {
+      return true;
+    }
+
+    current = current.parent;
+  }
+
+  return false;
+}
 
 async function main(): Promise<void> {
   if (process.argv.length <= 2) {

@@ -1,195 +1,140 @@
 # PCA CLI
 
-PCA = Persistent Context Architecture.
+**Never lose project context again.**
 
-Markdown files are the source of truth. RAG is the mandatory access layer. Agents must not read the full `pca/` folder by default.
-
-## Install
+PCA gives AI agents persistent memory. Commit decisions, query context, and keep every session grounded — without repeating yourself.
 
 ```bash
 npm install -g @quantpartners/pca
 ```
 
-**Windows users:** If PowerShell blocks the `pca` command, use `pca.cmd` instead:
+> **Windows users:** If PowerShell blocks `pca`, use `pca.cmd` or run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` as Administrator.
 
-```powershell
-pca.cmd init
-pca.cmd status
+---
+
+## What is PCA?
+
+When you build with AI agents, context disappears between sessions. You repeat decisions. Prompts grow. The project loses continuity.
+
+PCA fixes that.
+
+```
+Git tracks code history.
+PCA tracks project context history.
 ```
 
-Or fix it permanently by running PowerShell as Administrator:
+- Store decisions, milestones, and project memory in Markdown
+- Query only what's relevant — agents never read the full context
+- Works offline, no API key required to start
 
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
+---
+
+## Quickstart
 
 ```bash
-pca help
+pca setup        # guided onboarding
+pca init         # initialize memory in your project
+pca commit "Defined auth strategy" --type decision
+pca status       # see your context state
 ```
 
-## Onboarding
-
-Start with:
-
-```bash
-pca setup
-```
-
-`pca setup` is the primary onboarding command for PCA CLI 0.3.0. It supports:
-
-- `local-only`: offline local Markdown memory
-- `byok`: your own OpenAI API key for current OpenAI-backed/vector commands
-- `cloud`: PCA account/cloud sync layer
-
-### Interactive setup
-
-```bash
-pca setup
-```
-
-The guided flow detects current state and recommends the smallest useful next step.
-
-### Non-interactive setup
-
-```bash
-pca setup --mode local-only
-pca setup --mode byok --api-key <key>
-pca setup --mode cloud
-```
+---
 
 ## Modes
 
-### Local-only
+| Mode | Requires | What you get |
+|------|----------|--------------|
+| `local-only` | Nothing | Offline Markdown memory |
+| `byok` | OpenAI API key | Vector search + RAG queries |
+| `cloud` | PCA account | Cloud sync + dashboard (coming soon) |
 
-`local-only` requires no PCA auth, no OpenAI key, no backend, and no network access.
-
-Offline local commands:
-
-```bash
-pca init
-pca status
-pca commit "Documented checkout flow decision" --type decision
-pca logs
-```
-
-### BYOK
-
-`byok` configures a user-provided OpenAI API key for current OpenAI-backed/vector commands.
+Start local. Upgrade when your project grows.
 
 ```bash
+pca setup --mode local-only     # no API key needed
 pca setup --mode byok --api-key <key>
-```
-
-`pca setup` validates the key before storing it globally. Existing project `.env` files can still be used as a source for BYOK setup.
-
-### Cloud
-
-`cloud` is the PCA account/cloud sync layer. It is not defined as a permanent requirement for user-owned OpenAI keys.
-
-Cloud setup:
-
-```bash
 pca setup --mode cloud
 ```
 
-If cloud auth is configured, continue with:
+---
+
+## Core Commands
 
 ```bash
-pca login
+# Setup & diagnostics
+pca setup               # guided onboarding
+pca doctor              # diagnose your setup
+pca status              # project memory state
+pca health              # context size and hallucination risk
+
+# Memory
+pca init                # initialize PCA in your project
+pca commit "message"    # record a decision or milestone
+pca commit "message" --type decision|feature|architecture|product
+pca logs                # view context history
+pca logs --last 10
+pca logs --type decision
+
+# Query & tasks
+pca query "auth strategy"         # search project memory
+pca task "build login screen"     # generate compact agent context
+
+# Sync & close
+pca sync                # sync memory to vector store
+pca close               # close session and update changelog
+
+# Account
+pca login / logout / whoami
 ```
 
-For current OpenAI-backed/vector commands, you may still need BYOK today:
+---
+
+## Context Health
+
+PCA warns you before context gets too large and agents start hallucinating.
 
 ```bash
-pca config set openai-api-key
+pca health
 ```
 
-## Auth and Credentials
-
-- Local memory commands do not require PCA auth or OpenAI.
-- `pca login` is auth-only. It opens the PCA browser login flow and stores the PCA auth session in `~/.pca/auth.json`.
-- `pca logout` clears PCA auth only by default.
-- OpenAI/BYOK credentials are stored separately from PCA auth.
-
-Cloud auth requires a hosted PCA backend. Configure it with:
-
-```bash
-pca config set auth-base-url https://your-pca-auth-host.example
+```
+🟢 Context Health — SAFE
+────────────────────────────────────────
+Words        3,400
+Tokens       ~2,550 / 15,000
+Usage        17%
 ```
 
-or:
+A `💡 PCA advice` warning appears automatically after any command when your context approaches the limit.
 
-```bash
-PCA_AUTH_BASE_URL=https://your-pca-auth-host.example pca login
+---
+
+## Credentials & Storage
+
+PCA stores everything in `~/.pca/` — never inside your project:
+
+```
+~/.pca/auth.json      # PCA session
+~/.pca/config.json    # global config
+~/.pca/secrets.json   # API keys (fallback)
 ```
 
-The CLI does not include Clerk secrets and does not ship backend auth services.
+Your project only contains:
 
-## Global Storage
-
-PCA stores user-level configuration under:
-
-```txt
-~/.pca/
-  auth.json
-  config.json
-  secrets.json
+```
+PCA_INDEX.md
+AGENTS.md
+.pca/config.json
+pca/
 ```
 
-Project `.pca/config.json` stores only project data:
+No secrets. No `.env` pollution.
 
-```json
-{
-  "projectName": "...",
-  "projectSlug": "...",
-  "vectorStoreId": "...",
-  "createdAt": "...",
-  "updatedAt": "..."
-}
-```
-
-Secrets are never stored in project files.
-
-## Command Notes
-
-### `pca setup`
-
-- Primary onboarding command
-- Supports interactive and non-interactive setup
-- Handles local-only, BYOK, and cloud guidance
-
-### `pca login`
-
-- Auth-only
-- Requires `auth-base-url`
-- Does not prompt for or validate an OpenAI key
-
-### `pca logout`
-
-- Clears PCA auth only by default
-- Use `pca logout --clear-openai-key` to remove stored BYOK credentials too
-
-### `pca whoami`
-
-- Shows derived mode
-- Shows offline, BYOK, and cloud readiness separately
-
-### `pca doctor`
-
-- Diagnoses project, auth, and credential state
-- Suggests next steps without treating cloud auth as a blocker for local mode
-
-### `pca config`
-
-- Default summary shows derived mode and readiness
-- `get/set/clear` behavior remains:
-  - `openai-api-key`
-  - `auth-base-url`
+---
 
 ## Typical Flows
 
-### Local-only
-
+**Local only (no API key)**
 ```bash
 pca setup --mode local-only
 pca init
@@ -197,48 +142,35 @@ pca commit "initial context snapshot"
 pca logs
 ```
 
-### BYOK
-
+**With OpenAI (vector search)**
 ```bash
 pca setup --mode byok --api-key <key>
 pca init
-pca status
-```
-
-### Cloud
-
-```bash
-pca setup --mode cloud
-pca login
-pca config set openai-api-key
-pca init
 pca sync
-pca task "crear hero mobile"
+pca task "build checkout flow"
 ```
 
-## Commands
+---
 
-```bash
-pca help
-pca setup
-pca doctor
-pca login
-pca logout
-pca whoami
-pca config
-pca status
-pca commit "record local context update"
-pca commit "ADR: keep Markdown as source of truth" --type decision
-pca logs
-pca logs --last 10
-pca logs --type decision
-pca init
-pca sync
-pca query "project architecture"
-pca task "crear hero mobile"
-pca visual add ./example.png --type reference --note "landing reference"
-pca close
+## Roadmap
+
 ```
+0.1–0.4  CLI base, Git-style commits, global auth ✓
+0.5      PCA Cloud sync beta
+0.6      Dashboard + token savings analytics
+1.0      Context OS for AI builders
+```
+
+---
+
+## Limitations
+
+- Cloud login requires a hosted PCA backend (not included in CLI)
+- No web dashboard yet
+- No multiuser project sharing yet
+- Visual memory stores metadata only — multimodal analysis coming in v2
+
+---
 
 ## Development
 
@@ -247,54 +179,9 @@ npm install
 npm run build
 npm run typecheck
 npm test
-node dist/index.js help
-node dist/index.js doctor
 ```
-
-Windows PowerShell may block npm `.ps1` shims depending on ExecutionPolicy. Use `npm.cmd`:
-
-```powershell
-npm.cmd install
-npm.cmd run build
-npm.cmd run typecheck
-npm.cmd test
-node dist\index.js help
-node dist\index.js doctor
-```
-
-Local global install:
 
 ```bash
-npm link
+npm link        # local global install
 pca help
 ```
-
-Windows CLI note:
-
-- PowerShell may block npm `.ps1` shims depending on ExecutionPolicy. Use `pca.cmd help`.
-- CMD can use `pca help`.
-
-## Publish
-
-```bash
-npm run build
-npm pack --dry-run
-npm publish --access public
-```
-
-Do not publish until build, tests, and local install checks pass.
-
-## Limitations
-
-- The Clerk browser login requires a hosted PCA backend. The CLI implements the callback/exchange pattern but does not ship backend secrets.
-- OpenAI API keys are stored in `~/.pca/secrets.json` as the current fallback. OS keychain integration is a future upgrade.
-- No web dashboard yet.
-- No billing.
-- No multiuser project sharing.
-- No advanced Vector Store deduplication/replacement yet.
-- Visual memory stores local images plus textual metadata in `pca/visual/visual-index.md`; real multimodal analysis comes in v2.
-
-## References
-
-- Clerk custom OAuth flows: https://clerk.com/docs/guides/development/custom-flows/authentication/oauth-connections
-- OpenAI models list endpoint: https://platform.openai.com/docs/api-reference/models/list
