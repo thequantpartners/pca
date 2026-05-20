@@ -29,11 +29,11 @@ export function registerCloseCommand(program: Command): void {
         console.log(chalk.yellow("No .pca/last-task-context.md found. Continuing with manual closure."));
       }
 
-      console.log(chalk.bold("Closure requires explicit user confirmation with SI."));
+      console.log(chalk.bold("Closure requires explicit user confirmation with YES."));
 
       const rl = input.isTTY ? createInterface({ input, output }) : undefined;
       try {
-        const confirmed = await promptClosureInput(rl, "La tarea fue completada y confirmada con SI? (SI/yes) ");
+        const confirmed = await promptClosureInput(rl, "Was the task completed and confirmed with YES? (YES/no) ");
         const normalizedConfirmation = confirmed.trim().toLowerCase();
 
         if (!normalizedConfirmation) {
@@ -41,12 +41,12 @@ export function registerCloseCommand(program: Command): void {
           return;
         }
 
-        if (!["yes", "y", "si", "sí"].includes(normalizedConfirmation)) {
+        if (!["yes", "y"].includes(normalizedConfirmation)) {
           console.log("Closure cancelled. No PCA files were updated.");
           return;
         }
 
-        const change = await promptClosureInput(rl, "Texto breve del cambio realizado: ");
+        const change = await promptClosureInput(rl, "Brief description of the completed change: ");
         const normalizedChange = change.trim();
 
         if (!normalizedChange) {

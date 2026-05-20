@@ -45,7 +45,7 @@ export async function loadConfig(root = getProjectRoot()): Promise<PCAProjectCon
     throw new Error(
       [
         chalk.red("PCA config not found."),
-        "PCA sin RAG no opera.",
+        "RAG is not available.",
         "Run `pca init` first.",
       ].join("\n"),
     );
@@ -57,7 +57,7 @@ export async function loadConfig(root = getProjectRoot()): Promise<PCAProjectCon
     throw new Error(
       [
         chalk.red("Missing vectorStoreId in .pca/config.json."),
-        "PCA sin RAG no opera.",
+        "RAG is not available.",
         "Run `pca init` again in a clean project or repair the config.",
       ].join("\n"),
     );

@@ -22,7 +22,7 @@ export function registerTaskCommand(program: Command): void {
         throw new Error(
           [
             chalk.red("PCA_INDEX.md not found."),
-            "PCA sin RAG no opera.",
+            "RAG is not available.",
             "Run `pca init` first.",
           ].join("\n"),
         );

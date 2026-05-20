@@ -14,19 +14,19 @@ export const TASK_LIMITS: Record<TaskType, number> = {
 export function classifyTask(task: string): TaskType {
   const normalized = task.toLowerCase();
 
-  if (/\b(ui|diseño|landing|mobile|screenshot|visual|mockup)\b/.test(normalized)) {
+  if (/\b(ui|design|landing|mobile|screenshot|visual|mockup)\b/.test(normalized)) {
     return "visual";
   }
 
-  if (/\b(arquitectura|stack|database|auth|infra)\b/.test(normalized)) {
+  if (/\b(architecture|stack|database|auth|infra)\b/.test(normalized)) {
     return "architecture";
   }
 
-  if (/\b(bug|error|fix|arreglar)\b/.test(normalized)) {
+  if (/\b(bug|error|fix)\b/.test(normalized)) {
     return "bug";
   }
 
-  if (/\b(audit|auditar|review)\b/.test(normalized)) {
+  if (/\b(audit|review)\b/.test(normalized)) {
     return "audit";
   }
 
@@ -61,7 +61,7 @@ export function buildTaskContext(task: string, type: TaskType, results: VectorSe
     ? results
         .map((result, index) => `### ${index + 1}. [${result.path}]\n${cleanChunk(result.text)}`)
         .join("\n\n")
-    : "No relevant context was retrieved. PCA sin RAG no opera; run `pca sync` and retry.";
+    : "No relevant context was retrieved. RAG is not available; run `pca sync` and retry.";
 
   return `# PCA Task Context
 
@@ -82,12 +82,12 @@ ${summary}
 ${context}
 
 ## Agent Instructions
-- Scope estricto.
-- No actualizar roadmap/changelog todavía.
-- No inventar decisiones.
-- Revisar archivos de código directamente relacionados.
-- Validar antes de decir completado.
-- Al terminar preguntar: ¿Doy esta tarea por terminada?
+- Keep scope strict.
+- Do not update roadmap/changelog yet.
+- Do not invent decisions.
+- Review directly related source files.
+- Validate before saying the task is complete.
+- When done, ask: Is this task complete?
 `;
 }
 

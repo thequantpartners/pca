@@ -74,8 +74,8 @@ pca commit "message" --type decision|feature|architecture|product
 pca logs                # view context history
 pca logs --last 10
 pca logs --type decision
-pca diff                # see unsynced context changes
-pca forget              # deprecate or archive old context commits
+pca forget              # Archive or deprecate obsolete context
+pca diff                # Show context changes since last sync
 
 # Query & tasks
 pca query "auth strategy"         # search project memory
@@ -157,6 +157,7 @@ No secrets. No `.env` pollution.
 pca setup --mode local-only
 pca init
 pca commit "initial context snapshot"
+pca health
 pca diff
 pca logs
 ```

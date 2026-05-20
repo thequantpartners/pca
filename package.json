@@ -1,6 +1,6 @@
 {
   "name": "@quantpartners/pca",
-  "version": "0.4.9",
+  "version": "0.5.0",
   "description": "Persistent Context Architecture CLI for AI-native development",
   "type": "module",
   "bin": {
