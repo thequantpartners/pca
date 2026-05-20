@@ -74,6 +74,8 @@ pca commit "message" --type decision|feature|architecture|product
 pca logs                # view context history
 pca logs --last 10
 pca logs --type decision
+pca diff                # see unsynced context changes
+pca forget              # deprecate or archive old context commits
 
 # Query & tasks
 pca query "auth strategy"         # search project memory
@@ -109,6 +111,22 @@ A `💡 PCA advice` warning appears automatically after any command when your co
 
 ---
 
+## Context Diff & Forget
+
+Use `pca diff` before syncing to see what changed since the last sync:
+
+```bash
+pca diff
+```
+
+Use `pca forget` when a decision is outdated. PCA never hard-deletes by default; the safe path marks a commit as deprecated, and archive mode moves it to `pca/archive/context-commits-archive.json`.
+
+```bash
+pca forget
+```
+
+---
+
 ## Credentials & Storage
 
 PCA stores everything in `~/.pca/` — never inside your project:
@@ -139,6 +157,7 @@ No secrets. No `.env` pollution.
 pca setup --mode local-only
 pca init
 pca commit "initial context snapshot"
+pca diff
 pca logs
 ```
 
@@ -146,6 +165,7 @@ pca logs
 ```bash
 pca setup --mode byok --api-key <key>
 pca init
+pca diff
 pca sync
 pca task "build checkout flow"
 ```
