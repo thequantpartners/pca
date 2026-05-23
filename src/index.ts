@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { registerAuditCommand } from "./commands/audit.js";
 import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
@@ -13,6 +14,7 @@ import { registerInitCommand } from "./commands/init.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
 import { registerLogsCommand } from "./commands/logs.js";
+import { registerMCPCommand } from "./commands/mcp.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerSetupCommand } from "./commands/setup.js";
 import { registerStatusCommand } from "./commands/status.js";
@@ -45,6 +47,7 @@ program
   });
 
 registerInitCommand(program);
+registerAuditCommand(program);
 registerBootstrapCommand(program);
 registerStatusCommand(program);
 registerHealthCommand(program);
@@ -63,10 +66,11 @@ registerWhoamiCommand(program);
 registerSetupCommand(program);
 registerConfigCommand(program);
 registerDoctorCommand(program);
+registerMCPCommand(program);
 registerHelpCommand(program);
 
 function shouldSkipPCAAdvice(actionCommand: Command): boolean {
-  const excludedCommands = new Set(["health", "doctor", "login", "logout", "whoami", "config", "forget"]);
+  const excludedCommands = new Set(["health", "doctor", "login", "logout", "whoami", "config", "forget", "mcp", "audit"]);
   let current: Command | null = actionCommand;
 
   while (current) {

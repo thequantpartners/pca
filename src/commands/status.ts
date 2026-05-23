@@ -9,6 +9,7 @@ import {
   type ContextCommit,
 } from "../core/context-commits.js";
 import { getProjectRoot, loadConfig } from "../core/config.js";
+import { formatHealthOutput, getAllHealthChecks } from "../core/health-check.js";
 import { getLocalProjectStatus, type LocalProjectStatus } from "../core/project-status.js";
 import { loadDerivedReadiness } from "../core/readiness-state.js";
 import { getOpenAIKey } from "../core/secrets.js";
@@ -68,6 +69,8 @@ export function registerStatusCommand(program: Command): void {
       if (commitLogWarning) {
         console.log(chalk.yellow(commitLogWarning));
       }
+      const health = await getAllHealthChecks(root);
+      console.log(formatHealthOutput(health));
     });
 }
 

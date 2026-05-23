@@ -7,6 +7,7 @@ import { applyOpenAIKeyFlag, getProjectRoot, saveConfig, type PCAProjectConfig }
 import { slugify, writeFileIfMissing } from "../core/files.js";
 import { ensureValidOpenAIKey } from "../core/openai-key.js";
 import { createVectorStore } from "../core/openai.js";
+import { promptText } from "../core/prompt.js";
 import { getOpenAIKey } from "../core/secrets.js";
 import { agentsTemplate } from "../templates/agents.js";
 import { coreDocs, projectReadmeTemplate } from "../templates/docs.js";
@@ -82,6 +83,7 @@ export function registerInitCommand(program: Command): void {
 
       await saveConfig(config, root);
       created.push(".pca/config.json");
+      await installPostCommitHook(root);
 
       console.log(chalk.green("PCA initialized."));
       console.log(`Project: ${projectName}`);
@@ -111,4 +113,40 @@ async function writeTracked(
   } else {
     skipped.push(relativePath);
   }
+}
+
+async function installPostCommitHook(root: string): Promise<void> {
+  const hooksDir = path.join(root, ".git", "hooks");
+  const hookPath = path.join(hooksDir, "post-commit");
+  const relativeHookPath = ".git/hooks/post-commit";
+
+  if (!(await fs.pathExists(hooksDir))) {
+    console.warn(chalk.yellow("Git hooks directory not found. Skipping post-commit hook installation."));
+    return;
+  }
+
+  if (await fs.pathExists(hookPath)) {
+    const answer = (await promptText(chalk.cyan("post-commit hook exists. Overwrite? (y/n) "))).trim().toLowerCase();
+    if (answer !== "y" && answer !== "yes") {
+      console.log(chalk.yellow("Skipped post-commit hook installation."));
+      return;
+    }
+  }
+
+  const hookContent = ["#!/usr/bin/env sh", "pca sync --silent >/dev/null 2>&1 || true", ""].join("\n");
+
+  try {
+    await fs.writeFile(hookPath, hookContent, "utf8");
+
+    if (process.platform !== "win32") {
+      await fs.chmod(hookPath, 0o755);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(chalk.yellow(`Failed to install git hook: ${message}`));
+    return;
+  }
+
+  console.log(chalk.green(`✅ Git hook installed: ${relativeHookPath}`));
+  console.log("Auto-sync enabled: pca sync runs after every git commit");
 }

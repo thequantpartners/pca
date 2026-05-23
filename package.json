@@ -1,6 +1,6 @@
 {
   "name": "@quantpartners/pca",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Persistent Context Architecture CLI for AI-native development",
   "type": "module",
   "bin": {
@@ -16,7 +16,8 @@
     "build": "node scripts/clean-dist.js && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs && npm run test:simulation",
+    "test:simulation": "node tests/team-simulation.test.mjs",
     "prepack": "npm run build",
     "pack:dry": "npm pack --dry-run"
   },
@@ -32,6 +33,7 @@
     "openai"
   ],
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "dotenv": "^17.4.2",
