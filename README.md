@@ -4,7 +4,7 @@
 
 PCA syncs your project knowledge with AI agents (Claude, Codex, Cursor) automatically. No more repeating context. No more agent confusion. No more wasted tokens.
 
-Built for **development teams** using AI in production.
+Built for **solo builders and teams** using AI agents.
 
 ---
 
@@ -12,12 +12,12 @@ Built for **development teams** using AI in production.
 
 ### The Problem
 
-When your team uses AI agents:
+When you build with AI agents:
 - **Context gets lost** between sessions
 - **Agents repeat mistakes** because they forgot the architecture
 - **Tokens pile up** because you reload the entire project context
-- **Decisions contradict** each other across the team
-- **Onboarding new devs** means re-teaching the agent everything
+- **Decisions contradict** each other over time
+- **Switching tasks** means re-teaching the agent what matters
 
 ### The Solution
 
@@ -46,7 +46,7 @@ git commit -m "feat: add auth"
 # ✅ PCA syncs automatically (silent, non-blocking)
 ```
 
-**Benefit:** Zero friction. Your team forgets PCA exists—it just works.
+**Benefit:** Zero friction. PCA stays out of your way — it just works.
 
 ### 📋 Audit Trail
 
@@ -106,7 +106,7 @@ Summary:
 
 | Feature | v0.6.0 | Benefit |
 |---------|--------|---------|
-| **Auto-sync on git** | ✅ | Zero friction, automatic for entire team |
+| **Auto-sync on git** | ✅ | Zero friction, automatic context capture |
 | **Audit trail** | ✅ | Debug AI decisions, optimize tokens |
 | **Health warnings** | ✅ | Catch stale context proactively |
 | **Git-style commits** | ✅ | Record decisions like you record code |
@@ -173,73 +173,65 @@ pca logs --last 10  # See context commits
 
 ---
 
-## Real-World Example: Team of 3 Devs
+## Real-World Example: Solo AI Builder
 
 ### Setup
 
 ```bash
-# Alice, Bob, Charlie clone the repo
-git clone <repo-with-pca>
+git clone <your-project>
 cd project
-# PCA is already initialized, hooks installed
+pca init
+pca bootstrap
 ```
 
-### Day 1 - Feature Work
+You edit the generated memory files once so PCA understands the product, architecture, stack, and current roadmap.
 
-**Alice** works on OAuth:
+### Morning — Feature Work
+
+You start a new authentication feature:
+
 ```bash
 pca task "implement oauth 2.0 flow"
 # Gets: Architecture + Stack + Active Decisions
-# Pastes context into Claude → builds feature
+# Paste context into Claude → build feature
 git commit -m "feat: oauth implementation"
 # ✅ Auto-synced
 ```
 
-**Bob** works on database:
+PCA records the relevant context and keeps your project memory aligned with the code you just committed.
+
+### Afternoon — Bug Fix
+
+You switch to a database issue:
+
 ```bash
-pca task "setup postgres migrations for users"
-# Gets: Architecture + Stack (relevant parts)
-# Pastes context into Cursor → builds migrations
-git commit -m "feat: user migrations"
+pca task "fix slow user lookup query"
+# Gets: Stack + database notes + recent decisions
+# Paste context into Codex → implement fix
+git commit -m "fix: optimize user lookup"
 # ✅ Auto-synced
 ```
 
-**Charlie** works on middleware:
-```bash
-pca task "implement jwt validation middleware"
-# Gets: Stack + Architecture + Active Decisions
-# Pastes context into Claude → builds middleware
-git commit -m "feat: jwt middleware"
-# ✅ Auto-synced
-```
+The agent gets the right slice of context without you manually pasting old architecture notes again.
 
-### Day 2 - Review & Audit
-
-**Team lead reviews:**
+### End of Day — Review & Commit Milestone
 
 ```bash
 pca audit
-# Sees: All 3 tasks, what context each used, tokens spent
-# Decision: "Good context coverage, no conflicts"
+# See each AI task, what context it used, and how many tokens it retrieved
 
 pca status
-# Sees: All files fresh, vector store in sync
-# Decision: "Context health good"
-```
+# Confirm context files are fresh and synced
 
-### Day 3 - Commit Milestone
-
-```bash
-pca commit "completed authentication sprint" --type feature
+pca commit "completed authentication flow and query optimization" --type feature
 pca logs --type feature
-# Team sees: All context decisions recorded
 ```
 
 **Result:**
 - ✅ No repeated context
-- ✅ All 3 devs used consistent context
-- ✅ Audit trail shows what each AI task saw
-- ✅ Health warnings prevented stale context
+- ✅ Every AI session starts with current project memory
+- ✅ Audit trail shows what each task saw
+- ✅ Health warnings prevent stale context
 - ✅ **Saved ~40% tokens** vs manual context passing
 
 ---
@@ -349,15 +341,15 @@ your-project/
 
 ### ✅ Perfect For
 
-- **Development teams** (3+ people)
-- **Projects using AI agents** in daily workflow
+- **Solo AI builders** shipping with Claude, Codex, Cursor, or similar agents
+- **Indie hackers** juggling product, code, and architecture decisions
+- **Development teams** using AI agents in daily workflow
 - **Long-lived projects** (6+ months)
-- **Remote teams** (needs context sync across machines)
+- **Remote teams** that need context sync across machines
 - **Significant context** (50+ markdown files or complex architecture)
 
 ### ℹ️ Not Needed For
 
-- Solo builders (project context in your head)
 - Tiny projects (<1 month)
 - Simple scripts
 - Projects with minimal AI usage
@@ -366,7 +358,7 @@ your-project/
 
 ## Roadmap
 
-**Current:** v0.6.0 — Team-focused local-first
+**Current:** v0.6.0 — Solo-builder friendly, team-ready, local-first
 - ✅ Git hooks auto-sync
 - ✅ Audit trail
 - ✅ Health warnings
@@ -387,8 +379,8 @@ A: No. v0.6.0 is local-first. Cloud sync is optional in future versions.
 **Q: Will this slow down my commits?**
 A: No. Git hooks run in background, non-blocking. Silent on success.
 
-**Q: What if my team member doesn't use PCA?**
-A: They don't have to. Hooks are silent. Context syncs automatically for those who do use `pca task`.
+**Q: What if I work alone?**
+A: PCA is designed for solo AI builders first. It helps your agents remember the project when you switch tasks, sessions, or tools.
 
 **Q: Can I use PCA with GitHub Actions / CI?**
 A: Yes. Hooks work in CI. You can trigger `pca sync` in workflows.
