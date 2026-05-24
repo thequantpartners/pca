@@ -133,7 +133,19 @@ async function installPostCommitHook(root: string): Promise<void> {
     }
   }
 
-  const hookContent = ["#!/usr/bin/env sh", "pca sync --silent >/dev/null 2>&1 || true", ""].join("\n");
+  const hookContent = [
+    "#!/usr/bin/env sh",
+    "",
+    'commit_message="$(git log -1 --pretty=%B)"',
+    "",
+    'changed_files="$(git diff HEAD~1 HEAD --name-only 2>/dev/null || git diff-tree --root --no-commit-id --name-only -r HEAD)"',
+    'pca_files="$(printf \'%s\\n\' "$changed_files" | grep -E \'^(PCA_INDEX\\.md|AGENTS\\.md|pca/.+\\.md)$\')"',
+    "",
+    'if [ -n "$pca_files" ]; then',
+    '  pca commit "$commit_message" --type general || true',
+    "fi",
+    "",
+  ].join("\n");
 
   try {
     await fs.writeFile(hookPath, hookContent, "utf8");
@@ -148,5 +160,5 @@ async function installPostCommitHook(root: string): Promise<void> {
   }
 
   console.log(chalk.green(`✅ Git hook installed: ${relativeHookPath}`));
-  console.log("Auto-sync enabled: pca sync runs after every git commit");
+  console.log("Auto-commit enabled: PCA memory changes are recorded after git commits");
 }

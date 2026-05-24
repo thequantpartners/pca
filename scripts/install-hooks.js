@@ -12,13 +12,13 @@ const hooksDir = path.join(gitDir, "hooks");
 const hookPath = path.join(hooksDir, "post-commit");
 const hook = `#!/bin/sh
 
-changed_files="$(git diff HEAD~1 HEAD --name-only)"
 commit_message="$(git log -1 --pretty=%B)"
 
+changed_files="$(git diff HEAD~1 HEAD --name-only 2>/dev/null || git diff-tree --root --no-commit-id --name-only -r HEAD)"
 pca_files="$(printf '%s\\n' "$changed_files" | grep -E '^(PCA_INDEX\\.md|AGENTS\\.md|pca/.+\\.md)$')"
 
 if [ -n "$pca_files" ]; then
-  pca commit "$commit_message" --type general
+  pca commit "$commit_message" --type general || true
 fi
 `;
 

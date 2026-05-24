@@ -1,6 +1,6 @@
 {
   "name": "@quantpartners/pca",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Persistent Context Architecture CLI for AI-native development",
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "files": [
     "dist",
+    "scripts/install-hooks.js",
     "README.md",
     ".env.example"
   ],
