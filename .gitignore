@@ -6,3 +6,6 @@ dist/
 *.tgz
 *.log
 .DS_Store
+CODEBASE_SNAPSHOT.md
+CODEBASE_SNAPSHOT.txt
+ESTADO_ACTUAL.md
