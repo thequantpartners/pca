@@ -1,6 +1,8 @@
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import path from "node:path";
 import fs from "fs-extra";
+import { getCurrentBranch, initDB, recordCommit, upsertBranch } from "./db.js";
 
 export const CONTEXT_COMMIT_TYPES = ["decision", "feature", "bugfix", "architecture", "product", "general"] as const;
 
@@ -12,6 +14,8 @@ export type ContextCommit = {
   message: string;
   type: ContextCommitType;
 };
+
+initDB();
 
 export class ContextCommitLogError extends Error {
   constructor(logPath: string, detail: string) {
@@ -83,6 +87,17 @@ export async function appendContextCommit(
   await fs.ensureDir(path.dirname(logPath));
   await fs.writeJson(logPath, commits, { spaces: 2 });
 
+  const branch = getCurrentBranch();
+  upsertBranch(branch);
+  recordCommit({
+    id: commit.id,
+    branch,
+    gitHash: getCurrentGitHash(root),
+    message: commit.message,
+    type: commit.type,
+    timestamp: commit.timestamp,
+  });
+
   return commit;
 }
 
@@ -106,6 +121,18 @@ function createCommitId(): string {
   ].join("");
 
   return `${stamp}-${crypto.randomBytes(4).toString("hex")}`;
+}
+
+function getCurrentGitHash(root: string): string {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
 }
 
 function isContextCommit(value: unknown): value is ContextCommit {

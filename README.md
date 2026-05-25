@@ -1,431 +1,105 @@
-# PCA — Persistent Context Architecture
+# PCA
 
-> **Git for AI context.** Never lose project context when working with AI agents.
+> Git for AI context.
 
-PCA syncs your project knowledge with AI agents (Claude, Codex, Cursor) automatically. No more repeating context. No more agent confusion. No more wasted tokens.
+[![npm version](https://img.shields.io/npm/v/@quantpartners/pca.svg)](https://www.npmjs.com/package/@quantpartners/pca)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
-Built for **solo builders and teams** using AI agents.
+PCA 1.0.0 is an open source CLI that gives your project persistent AI context. Never lose project context again.
+Built for solo builders, vibe coders, indie hackers, and AI builders.
 
----
+## The Problem
 
-## Why PCA?
+AI agents forget what happened between sessions.
+Architecture decisions get buried in chat history.
+Prompts grow because you keep re-explaining the project.
+Branch switches make context even easier to lose.
 
-### The Problem
+## The Solution
 
-When you build with AI agents:
-- **Context gets lost** between sessions
-- **Agents repeat mistakes** because they forgot the architecture
-- **Tokens pile up** because you reload the entire project context
-- **Decisions contradict** each other over time
-- **Switching tasks** means re-teaching the agent what matters
+PCA gives the project its own memory.
+Markdown stays the source of truth, Git captures the workflow, and SQLite indexes operational state.
+You set it up once per project, then PCA works quietly in the background.
 
-### The Solution
-
-PCA creates a **persistent, synced memory** of your project:
-
-```
-Your codebase + decisions + architecture
-        ↓
-   PCA (local + git hooks)
-        ↓
-AI agent gets only what it needs (no bloat)
-```
-
-**Result:** Faster, cheaper, more reliable AI agents.
-
----
-
-## What's New in v0.6.0
-
-### ✨ Auto-Sync via Git Hooks
-
-No more manual `pca sync`. PCA syncs automatically after every commit.
-
-```bash
-git commit -m "feat: add auth"
-# ✅ PCA syncs automatically (silent, non-blocking)
-```
-
-**Benefit:** Zero friction. PCA stays out of your way — it just works.
-
-### 📋 Audit Trail
-
-See exactly what context each AI task retrieved.
-
-```bash
-pca audit
-```
-
-```
-PCA Audit Log
-
-2024-01-15 10:30:00  [audit_001] implement oauth flow
-  Chunks: 2 retrieved, 425 tokens
-  From: architecture.md, stack.md
-  Status: completed
-
-2024-01-15 09:15:00  [audit_002] fix database query
-  Chunks: 3 retrieved, 612 tokens
-  From: architecture.md, stack.md, database.md
-  Status: completed
-```
-
-**Benefit:** Debug AI mistakes. Understand what the agent saw. Optimize token usage.
-
-### ⚠️ Context Health Warnings
-
-Know when your context is stale or out of sync.
-
-```bash
-pca status
-```
-
-```
-Context Health
-
-Core Files:
-✅ pca/core/architecture.md (updated 2h ago)
-✅ pca/core/stack.md (updated 1d ago)
-⚠️  pca/core/product-context.md (updated 14d ago - consider updating)
-❌ pca/state/roadmap.md (never synced - run: pca sync)
-
-Vector Store Status:
-📊 42 chunks indexed
-⏱️  Last sync: 30min ago
-
-Summary:
-⚠️  1 file potentially stale (>7 days)
-ℹ️  Everything else is healthy
-```
-
-**Benefit:** Catch outdated context before it breaks your AI agent.
-
----
-
-## Features Overview
-
-| Feature | v0.6.0 | Benefit |
-|---------|--------|---------|
-| **Auto-sync on git** | ✅ | Zero friction, automatic context capture |
-| **Audit trail** | ✅ | Debug AI decisions, optimize tokens |
-| **Health warnings** | ✅ | Catch stale context proactively |
-| **Git-style commits** | ✅ | Record decisions like you record code |
-| **Local-first** | ✅ | Works offline, no cloud required |
-| **Markdown source** | ✅ | Version control friendly, readable |
-| **Task context generator** | ✅ | Compact context for each AI task |
-| **Visual memory** | ✅ | Store screenshots, mockups, references |
-
----
-
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 npm install -g @quantpartners/pca
 ```
-
-### Initialize Your Project
 
 ```bash
 cd your-project
 pca init
 ```
 
-Creates:
-- `PCA_INDEX.md` — Project memory entry point
-- `pca/core/` — Architecture, stack, decisions
-- `pca/state/` — Roadmap, changelog, active tasks
-- `.git/hooks/post-commit` — Auto-sync hook (installed automatically)
-
-### Bootstrap Project Context
-
-```bash
-pca bootstrap
-```
-
-Fills templates with your project basics. Edit as needed.
-
-### Daily Workflow
-
-**For each AI task:**
-
-```bash
-pca task "implement user authentication"
-```
-
-Output: Compact context ready to paste into Claude/Cursor.
-
-**After work:**
-
-```bash
-git commit -m "feat: add auth"
-# ✅ PCA syncs automatically
-```
-
-**Review what happened:**
-
-```bash
-pca audit           # See all AI tasks + context used
-pca status          # Check context health
-pca logs --last 10  # See context commits
-```
-
----
-
-## Real-World Example: Solo AI Builder
-
-### Setup
-
-```bash
-git clone <your-project>
-cd project
-pca init
-pca bootstrap
-```
-
-You edit the generated memory files once so PCA understands the product, architecture, stack, and current roadmap.
-
-### Morning — Feature Work
-
-You start a new authentication feature:
-
-```bash
-pca task "implement oauth 2.0 flow"
-# Gets: Architecture + Stack + Active Decisions
-# Paste context into Claude → build feature
-git commit -m "feat: oauth implementation"
-# ✅ Auto-synced
-```
-
-PCA records the relevant context and keeps your project memory aligned with the code you just committed.
-
-### Afternoon — Bug Fix
-
-You switch to a database issue:
-
-```bash
-pca task "fix slow user lookup query"
-# Gets: Stack + database notes + recent decisions
-# Paste context into Codex → implement fix
-git commit -m "fix: optimize user lookup"
-# ✅ Auto-synced
-```
-
-The agent gets the right slice of context without you manually pasting old architecture notes again.
-
-### End of Day — Review & Commit Milestone
-
-```bash
-pca audit
-# See each AI task, what context it used, and how many tokens it retrieved
-
-pca status
-# Confirm context files are fresh and synced
-
-pca commit "completed authentication flow and query optimization" --type feature
-pca logs --type feature
-```
-
-**Result:**
-- ✅ No repeated context
-- ✅ Every AI session starts with current project memory
-- ✅ Audit trail shows what each task saw
-- ✅ Health warnings prevent stale context
-- ✅ **Saved ~40% tokens** vs manual context passing
-
----
-
-## Commands Reference
-
-### Core Commands
-
-```bash
-pca init                          # Initialize PCA in a project
-pca bootstrap                     # Fill templates with your project info
-pca status                        # Show project status + context health
-pca task "<task description>"     # Generate compact context for an AI task
-```
-
-### Memory Management
-
-```bash
-pca commit "<message>"            # Record a context milestone
-pca commit "..." --type decision  # Record a specific decision
-pca logs                          # View context commit history
-pca logs --type feature           # Filter by commit type
-pca diff                          # See context changes since last commit
-```
-
-### Auditing & Health
-
-```bash
-pca audit                         # View all AI task context retrievals
-pca audit --task "oauth"          # Filter by task name
-pca audit --last 5                # Show last 5 tasks
-```
-
-### Sync & Query
-
-```bash
-pca sync                          # Sync context to vector store (auto on commit)
-pca query "authentication flow"   # Search project memory
-```
-
-### Advanced
-
-```bash
-pca login                         # Setup cloud sync (future feature)
-pca doctor                        # Diagnose project setup
-pca config                        # Manage configuration
-```
-
----
+`pca init` installs the local memory structure and two Git hooks: `post-commit` for decision capture and `post-checkout` for branch awareness.
 
 ## How It Works
 
-### Architecture
+PCA integrates with Git so context capture follows the workflow you already use.
 
-```
-Your Code + Decisions + Architecture
-        ↓
-    PCA_INDEX.md (markdown source of truth)
-        ↓
-    .git/hooks/post-commit (auto-sync on commit)
-        ↓
-    Vector Store (OpenAI or local)
-        ↓
-    pca task "..." (RAG retrieval)
-        ↓
-Compact Context → Claude/Cursor/Codex
+```bash
+git commit -m "feat: implement checkout flow"
 ```
 
-### The Core Rule
+After Git finishes printing its normal output, PCA may ask:
 
-> **Agents must not read the full `pca/` folder by default.**
->
-> Agents retrieve only task-relevant context using RAG.
->
-> This saves tokens, reduces confusion, and keeps context fresh.
-
-### File Structure
-
-```
-your-project/
-├── PCA_INDEX.md              ← Agent reads this first
-├── AGENTS.md                 ← Agent operating rules
-├── pca/
-│   ├── core/
-│   │   ├── project-brief.md
-│   │   ├── architecture.md
-│   │   ├── stack.md
-│   │   ├── product-context.md
-│   │   └── active-decisions.md
-│   ├── state/
-│   │   ├── roadmap.md
-│   │   ├── changelog.md
-│   │   └── active-task.md
-│   ├── rag/
-│   │   ├── sync-log.md
-│   │   └── audit-log.jsonl
-│   └── visual/
-│       ├── screenshots/
-│       ├── mockups/
-│       └── references/
-└── .git/hooks/post-commit   ← Auto-sync (installed by pca init)
+```text
+┌─────────────────────────────────────────┐
+│  PCA — Save this decision?              │
+│  commit: feat: implement checkout flow  │
+│  [Y] Yes, record  [N] No, skip          │
+└─────────────────────────────────────────┘
+> y
 ```
 
----
+If you answer yes, PCA records the decision in project memory and indexes it by branch.
+If the commit is not relevant, PCA resolves it silently.
 
-## When to Use PCA
+Branch changes are tracked too:
 
-### ✅ Perfect For
+```bash
+git switch payments
+```
 
-- **Solo AI builders** shipping with Claude, Codex, Cursor, or similar agents
-- **Indie hackers** juggling product, code, and architecture decisions
-- **Development teams** using AI agents in daily workflow
-- **Long-lived projects** (6+ months)
-- **Remote teams** that need context sync across machines
-- **Significant context** (50+ markdown files or complex architecture)
+```text
+# no output
+# PCA updates the active branch context in the background
+```
 
-### ℹ️ Not Needed For
+The hooks do not block your terminal. They run in the background and keep Git as the natural trigger for context updates.
 
-- Tiny projects (<1 month)
-- Simple scripts
-- Projects with minimal AI usage
+## Commands
 
----
+| Command | Description |
+| --- | --- |
+| `pca init` | Set up PCA for the project once. |
+| `pca status` | Show current project context status. |
+| `pca commit` | Manually record a decision or milestone. |
+| `pca query` | Search project memory. |
+| `pca task` | Generate compact context for an AI agent. |
+| `pca logs` | Show context commit history. |
+| `pca doctor` | Diagnose local PCA setup and project health. |
+
+## Philosophy
+
+Markdown files in `pca/` are the source of truth because builders should be able to read and edit memory directly.
+Git hooks capture context at the moment work happens.
+SQLite in `.pca/pca.db` is the operational index for branch awareness, pending prompts, and commit history.
+The agent should execute with context, not be responsible for remembering it.
 
 ## Roadmap
 
-**Current:** v0.6.0 — Solo-builder friendly, team-ready, local-first
-- ✅ Git hooks auto-sync
-- ✅ Audit trail
-- ✅ Health warnings
-- ✅ Context commits
-
-**Coming Soon:**
-- v0.7.0 — Cloud sync & team dashboard
-- v0.8.0 — Cost tracking per task
-- v1.0.0 — Production-ready with team management
-
----
-
-## FAQ
-
-**Q: Does PCA require cloud setup?**
-A: No. v0.6.0 is local-first. Cloud sync is optional in future versions.
-
-**Q: Will this slow down my commits?**
-A: No. Git hooks run in background, non-blocking. Silent on success.
-
-**Q: What if I work alone?**
-A: PCA is designed for solo AI builders first. It helps your agents remember the project when you switch tasks, sessions, or tools.
-
-**Q: Can I use PCA with GitHub Actions / CI?**
-A: Yes. Hooks work in CI. You can trigger `pca sync` in workflows.
-
-**Q: How much does it cost?**
-A: **Free forever** for local-first usage. Cloud features (paid) coming in v0.7.0.
-
-**Q: Does PCA work with Cursor, Claude, Codex?**
-A: Yes. All AI editors. Just paste the output from `pca task "<your task>"`.
-
----
-
-## Contributing
-
-Found a bug? Have a feature idea? Issues & PRs welcome:
-
-[GitHub: thequantpartners/pca](https://github.com/thequantpartners/pca)
-
----
-
-## Support
-
-- **Docs:** [Full documentation](https://github.com/thequantpartners/pca#readme)
-- **Issues:** [GitHub Issues](https://github.com/thequantpartners/pca/issues)
-- **Twitter:** [@quantpartners](https://twitter.com/quantpartners)
-
----
+1.0.0 -> Git-native context memory ✅
+2.0.0 -> PCA Cloud: vector memory
+Future -> Team context and agent handoff
 
 ## License
 
-MIT — Use freely. No restrictions.
+MIT
 
----
+## Links
 
-## The Core Idea
-
-Git gave developers version control for code.
-
-**PCA gives AI builders version control for context.**
-
-Never lose project memory again.
-
-```bash
-npm install -g @quantpartners/pca
-pca init
-```
-
-Start building smarter AI agents today.
+- npm: [@quantpartners/pca](https://www.npmjs.com/package/@quantpartners/pca)
+- GitHub: [thequantpartners/pca](https://github.com/thequantpartners/pca)

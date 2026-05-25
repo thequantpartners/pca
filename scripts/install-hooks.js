@@ -9,22 +9,42 @@ if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) {
 }
 
 const hooksDir = path.join(gitDir, "hooks");
-const hookPath = path.join(hooksDir, "post-commit");
-const hook = `#!/bin/sh
+const postCommitHookPath = path.join(hooksDir, "post-commit");
+const postCheckoutHookPath = path.join(hooksDir, "post-checkout");
+const postCommitHook = `#!/bin/sh
 
-commit_message="$(git log -1 --pretty=%B)"
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*|CYGWIN*)
+    sleep 1 && pca _post-commit-check < /dev/tty &
+    ;;
+  *)
+    nohup sh -c 'sleep 1 && pca _post-commit-check < /dev/tty' > /dev/null 2>&1 &
+    ;;
+esac
+`;
+const postCheckoutHook = `#!/bin/sh
 
-changed_files="$(git diff HEAD~1 HEAD --name-only 2>/dev/null || git diff-tree --root --no-commit-id --name-only -r HEAD)"
-pca_files="$(printf '%s\\n' "$changed_files" | grep -E '^(PCA_INDEX\\.md|AGENTS\\.md|pca/.+\\.md)$')"
+PREV_HEAD="$1"
+NEW_HEAD="$2"
+BRANCH_CHECKOUT="$3"
 
-if [ -n "$pca_files" ]; then
-  pca commit "$commit_message" --type general || true
+if [ "$BRANCH_CHECKOUT" = "1" ]; then
+  case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*)
+      pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
+      ;;
+    *)
+      nohup pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
+      ;;
+  esac
 fi
 `;
 
 fs.mkdirSync(hooksDir, { recursive: true });
-fs.writeFileSync(hookPath, hook, "utf8");
+fs.writeFileSync(postCommitHookPath, postCommitHook, "utf8");
+fs.writeFileSync(postCheckoutHookPath, postCheckoutHook, "utf8");
 
 if (process.platform !== "win32") {
-  fs.chmodSync(hookPath, 0o755);
+  fs.chmodSync(postCommitHookPath, 0o755);
+  fs.chmodSync(postCheckoutHookPath, 0o755);
 }
