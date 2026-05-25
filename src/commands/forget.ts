@@ -59,7 +59,7 @@ async function chooseCommit(commits: CommitRecord[]): Promise<CommitRecord | und
   }
 
   for (const [index, commit] of commits.entries()) {
-    console.log(`${index + 1}. ${commit.message} (${formatDate(commit.timestamp)})`);
+    console.log(`${index + 1}. [${formatShortId(commit.id)}] ${commit.message} — ${formatDateTime(commit.timestamp)}`);
   }
 
   const selected = Number.parseInt((await promptText("Selecciona número: ")).trim(), 10);
@@ -75,11 +75,21 @@ async function confirmAction(question: string): Promise<boolean> {
   return answer === "" || answer === "y" || answer === "yes";
 }
 
-function formatDate(timestamp: string): string {
+function formatShortId(id: string): string {
+  return id.slice(0, 8);
+}
+
+function formatDateTime(timestamp: string): string {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
     return "unknown";
   }
 
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear().toString().padStart(4, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
