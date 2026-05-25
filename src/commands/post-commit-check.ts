@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { exit, stdin, stdout } from "node:process";
+import { exit } from "node:process";
 import { createInterface, type Interface } from "node:readline";
 import { Command } from "commander";
 import {
@@ -12,7 +12,7 @@ import {
 } from "../core/db.js";
 
 const SKIP_PREFIXES = ["chore:", "docs:", "style:", "test:", "ci:"];
-const RESPONSE_TIMEOUT_MS = 10_000;
+const RESPONSE_TIMEOUT_MS = 30_000;
 
 export function registerPostCommitCheckCommand(program: Command): void {
   program.command("_post-commit-check", { hidden: true }).action(async () => {
@@ -149,9 +149,11 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
   let rl: Interface | undefined;
 
   try {
-    stdin.resume();
-    rl = createInterface({ input: stdin, output: stdout });
-    stdout.write(buildPrompt(commit.message));
+    process.stdin.resume();
+    rl = createInterface({ input: process.stdin, output: process.stdout });
+
+    await writeOutput(buildPrompt(commit.message));
+    await writeOutput("> ");
 
     const answer = await readAnswerWithTimeout(rl, commit.id);
     return isYes(answer) ? "y" : "n";
@@ -164,27 +166,32 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
 
 function readAnswerWithTimeout(rl: Interface, commitId: string): Promise<string> {
   return new Promise((resolve) => {
+    let settled = false;
+
     const cleanup = () => {
       clearTimeout(timeout);
-      rl.off("line", onLine);
     };
 
     const finish = (answer: string) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
       cleanup();
       resolve(answer);
     };
 
-    const onLine = (line: string) => {
-      finish(line);
-    };
-
     const timeout = setTimeout(() => {
       resolveYN(commitId, "n");
-      stdout.write("\nPCA: No response within 10 seconds. Skipped.\n");
+      process.stdout.write("\nPCA: No response within 30 seconds. Skipped.\n");
+      rl.close();
       finish("n");
     }, RESPONSE_TIMEOUT_MS);
 
-    rl.once("line", onLine);
+    rl.question("", (answer) => {
+      finish(answer);
+    });
   });
 }
 
@@ -196,8 +203,7 @@ function buildPrompt(message: string): string {
     "PCA: Save this commit as context?",
     `Commit: ${truncatedMessage}`,
     "[Y] Yes, record  [N] No, skip",
-    "> ",
-  ].join("\n");
+  ].join("\n") + "\n";
 }
 
 function truncate(value: string, maxLength: number): string {
@@ -210,11 +216,19 @@ function truncate(value: string, maxLength: number): string {
 
 function isYes(answer: string): boolean {
   const normalized = answer.trim().toLowerCase();
-  return normalized === "" || normalized === "y" || normalized === "yes";
+  return normalized === "" || normalized === "y";
 }
 
 function printConfirmation(response: "y" | "n"): void {
-  stdout.write(response === "y" ? "PCA: Decision saved.\n" : "PCA: Skipped.\n");
+  process.stdout.write(response === "y" ? "PCA: Decision saved.\n" : "PCA: Skipped.\n");
+}
+
+function writeOutput(content: string): Promise<void> {
+  return new Promise((resolve) => {
+    process.stdout.write(content, () => {
+      resolve();
+    });
+  });
 }
 
 function debugPrompt(event: string, payload: Record<string, unknown>): void {
