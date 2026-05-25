@@ -198,11 +198,23 @@ function getChangedFiles(gitHash: string | null): string[] {
 }
 
 function isPromptRelevantFile(filePath: string): boolean {
+  const normalizedPath = filePath.replace(/\\/gu, "/");
+
+  if (
+    normalizedPath === ".pca/pca.db" ||
+    normalizedPath === "package-lock.json" ||
+    normalizedPath.startsWith("node_modules/") ||
+    normalizedPath.startsWith("dist/")
+  ) {
+    return false;
+  }
+
   return (
-    /^src\/.+\.(ts|js|json)$/u.test(filePath) ||
-    /^pca\/.+\.md$/u.test(filePath) ||
-    filePath === "PCA_INDEX.md" ||
-    filePath === "AGENTS.md"
+    /\.(ts|js|tsx|jsx)$/u.test(normalizedPath) ||
+    /^pca\/.+\.md$/u.test(normalizedPath) ||
+    normalizedPath === "PCA_INDEX.md" ||
+    normalizedPath === "AGENTS.md" ||
+    /\.json$/u.test(normalizedPath)
   );
 }
 
