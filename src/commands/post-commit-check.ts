@@ -46,6 +46,11 @@ type TTYHandles = {
   close: () => void;
 };
 
+type RawModeReadable = NodeJS.ReadableStream & {
+  isRaw?: boolean;
+  setRawMode?: (mode: boolean) => void;
+};
+
 export function registerPostCommitCheckCommand(program: Command): void {
   program.command("_post-commit-check", { hidden: true }).action(async () => {
     try {
@@ -71,7 +76,7 @@ async function runPostCommitCheck(): Promise<void> {
     exit(0);
   }
 
-  const tty = openTTY();
+  const tty = openPromptIO();
   if (!tty) {
     resolveYN(latestCommit.id, "n");
     exit(0);
@@ -187,7 +192,7 @@ function isPromptRelevantFile(filePath: string): boolean {
 }
 
 async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
-  const tty = openTTY();
+  const tty = openPromptIO();
   if (!tty) {
     return "n";
   }
@@ -199,7 +204,7 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
     rl = createInterface({ input, output });
     output.write(buildPrompt(commit.message));
 
-    const answer = await readAnswerWithTimeout(rl);
+    const answer = await readAnswerWithTimeout(rl, input);
     return isYes(answer) ? "y" : "n";
   } catch {
     return "n";
@@ -209,7 +214,11 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
   }
 }
 
-function openTTY(): TTYHandles | undefined {
+function openPromptIO(): TTYHandles | undefined {
+  if (process.platform === "win32") {
+    return openWindowsPromptIO();
+  }
+
   if (isDevTTYAccessible()) {
     try {
       const input = fs.createReadStream("/dev/tty");
@@ -237,6 +246,26 @@ function openTTY(): TTYHandles | undefined {
   }
 
   return undefined;
+}
+
+function openWindowsPromptIO(): TTYHandles | undefined {
+  try {
+    const input = stdin as RawModeReadable;
+    const wasRaw = input.isRaw === true;
+
+    stdin.resume();
+    input.setRawMode?.(true);
+
+    return {
+      input: stdin,
+      output: stdout,
+      close: () => {
+        input.setRawMode?.(wasRaw);
+      },
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function isDevTTYAccessible(): boolean {
@@ -270,16 +299,40 @@ function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, maxLength - 3)}...`;
 }
 
-function readAnswerWithTimeout(rl: Interface): Promise<string> {
+function readAnswerWithTimeout(rl: Interface, input: NodeJS.ReadableStream): Promise<string> {
   return new Promise((resolve) => {
+    const cleanup = () => {
+      clearTimeout(timeout);
+      input.off("data", onData);
+      rl.off("line", onLine);
+    };
+
+    const finish = (answer: string) => {
+      cleanup();
+      resolve(answer);
+    };
+
+    const onLine = (line: string) => {
+      finish(line);
+    };
+
+    const onData = (chunk: Buffer | string) => {
+      const value = chunk.toString("utf8").trim().toLowerCase();
+      if (value === "y" || value === "yes" || value === "") {
+        finish("y");
+      }
+
+      if (value === "n" || value === "no" || value === "\u0003") {
+        finish("n");
+      }
+    };
+
     const timeout = setTimeout(() => {
-      resolve("n");
+      finish("n");
     }, RESPONSE_TIMEOUT_MS);
 
-    rl.once("line", (line) => {
-      clearTimeout(timeout);
-      resolve(line);
-    });
+    input.on("data", onData);
+    rl.once("line", onLine);
   });
 }
 
