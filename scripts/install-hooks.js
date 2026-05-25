@@ -1,5 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 const root = process.cwd();
 const gitDir = path.join(root, ".git");
@@ -11,34 +14,7 @@ if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) {
 const hooksDir = path.join(gitDir, "hooks");
 const postCommitHookPath = path.join(hooksDir, "post-commit");
 const postCheckoutHookPath = path.join(hooksDir, "post-checkout");
-const postCommitHook = `#!/bin/sh
-
-case "$(uname -s 2>/dev/null)" in
-  MINGW*|MSYS*|CYGWIN*)
-    sleep 1 && pca _post-commit-check < /dev/tty &
-    ;;
-  *)
-    nohup sh -c 'sleep 1 && pca _post-commit-check < /dev/tty' > /dev/null 2>&1 &
-    ;;
-esac
-`;
-const postCheckoutHook = `#!/bin/sh
-
-PREV_HEAD="$1"
-NEW_HEAD="$2"
-BRANCH_CHECKOUT="$3"
-
-if [ "$BRANCH_CHECKOUT" = "1" ]; then
-  case "$(uname -s 2>/dev/null)" in
-    MINGW*|MSYS*|CYGWIN*)
-      pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
-      ;;
-    *)
-      nohup pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
-      ;;
-  esac
-fi
-`;
+const { postCommitHook, postCheckoutHook } = await loadHooks();
 
 fs.mkdirSync(hooksDir, { recursive: true });
 fs.writeFileSync(postCommitHookPath, postCommitHook, "utf8");
@@ -47,4 +23,36 @@ fs.writeFileSync(postCheckoutHookPath, postCheckoutHook, "utf8");
 if (process.platform !== "win32") {
   fs.chmodSync(postCommitHookPath, 0o755);
   fs.chmodSync(postCheckoutHookPath, 0o755);
+}
+
+async function loadHooks() {
+  try {
+    return await import("../dist/core/hooks.js");
+  } catch {
+    const sourcePath = path.join(scriptDir, "..", "src", "core", "hooks.ts");
+    const source = fs.readFileSync(sourcePath, "utf8");
+
+    return {
+      postCommitHook: extractHook(source, "postCommitHook"),
+      postCheckoutHook: extractHook(source, "postCheckoutHook"),
+    };
+  }
+}
+
+function extractHook(source, name) {
+  const marker = `export const ${name} = \``;
+  const start = source.indexOf(marker);
+
+  if (start === -1) {
+    throw new Error(`Unable to find ${name} in src/core/hooks.ts`);
+  }
+
+  const contentStart = start + marker.length;
+  const end = source.indexOf("`;", contentStart);
+
+  if (end === -1) {
+    throw new Error(`Unable to parse ${name} in src/core/hooks.ts`);
+  }
+
+  return source.slice(contentStart, end);
 }

@@ -5,6 +5,7 @@ import fs from "fs-extra";
 import { loadAuthSession } from "../core/auth.js";
 import { applyOpenAIKeyFlag, getProjectRoot, saveConfig, type PCAProjectConfig } from "../core/config.js";
 import { slugify, writeFileIfMissing } from "../core/files.js";
+import { postCheckoutHook, postCommitHook } from "../core/hooks.js";
 import { ensureValidOpenAIKey } from "../core/openai-key.js";
 import { createVectorStore } from "../core/openai.js";
 import { promptText } from "../core/prompt.js";
@@ -83,7 +84,7 @@ export function registerInitCommand(program: Command): void {
 
       await saveConfig(config, root);
       created.push(".pca/config.json");
-      await installPostCommitHook(root);
+      await installGitHooks(root);
 
       console.log(chalk.green("PCA initialized."));
       console.log(`Project: ${projectName}`);
@@ -115,50 +116,45 @@ async function writeTracked(
   }
 }
 
-async function installPostCommitHook(root: string): Promise<void> {
+async function installGitHooks(root: string): Promise<void> {
   const hooksDir = path.join(root, ".git", "hooks");
-  const hookPath = path.join(hooksDir, "post-commit");
-  const relativeHookPath = ".git/hooks/post-commit";
 
   if (!(await fs.pathExists(hooksDir))) {
-    console.warn(chalk.yellow("Git hooks directory not found. Skipping post-commit hook installation."));
+    console.warn(chalk.yellow("Git hooks directory not found. Skipping git hook installation."));
     return;
   }
 
-  if (await fs.pathExists(hookPath)) {
-    const answer = (await promptText(chalk.cyan("post-commit hook exists. Overwrite? (y/n) "))).trim().toLowerCase();
-    if (answer !== "y" && answer !== "yes") {
-      console.log(chalk.yellow("Skipped post-commit hook installation."));
-      return;
+  const hooks = [
+    { name: "post-commit", content: postCommitHook },
+    { name: "post-checkout", content: postCheckoutHook },
+  ];
+
+  for (const hook of hooks) {
+    const hookPath = path.join(hooksDir, hook.name);
+    const relativeHookPath = `.git/hooks/${hook.name}`;
+
+    if (await fs.pathExists(hookPath)) {
+      const answer = (await promptText(chalk.cyan(`${hook.name} hook exists. Overwrite? (y/n) `))).trim().toLowerCase();
+      if (answer !== "y" && answer !== "yes") {
+        console.log(chalk.yellow(`Skipped ${relativeHookPath} installation.`));
+        continue;
+      }
     }
+
+    try {
+      await fs.writeFile(hookPath, hook.content, "utf8");
+
+      if (process.platform !== "win32") {
+        await fs.chmod(hookPath, 0o755);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(chalk.yellow(`Failed to install ${relativeHookPath}: ${message}`));
+      continue;
+    }
+
+    console.log(chalk.green(`Git hook installed: ${relativeHookPath}`));
   }
 
-  const hookContent = [
-    "#!/usr/bin/env sh",
-    "",
-    'commit_message="$(git log -1 --pretty=%B)"',
-    "",
-    'changed_files="$(git diff HEAD~1 HEAD --name-only 2>/dev/null || git diff-tree --root --no-commit-id --name-only -r HEAD)"',
-    'pca_files="$(printf \'%s\\n\' "$changed_files" | grep -E \'^(PCA_INDEX\\.md|AGENTS\\.md|pca/.+\\.md)$\')"',
-    "",
-    'if [ -n "$pca_files" ]; then',
-    '  pca commit "$commit_message" --type general || true',
-    "fi",
-    "",
-  ].join("\n");
-
-  try {
-    await fs.writeFile(hookPath, hookContent, "utf8");
-
-    if (process.platform !== "win32") {
-      await fs.chmod(hookPath, 0o755);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(chalk.yellow(`Failed to install git hook: ${message}`));
-    return;
-  }
-
-  console.log(chalk.green(`✅ Git hook installed: ${relativeHookPath}`));
-  console.log("Auto-commit enabled: PCA memory changes are recorded after git commits");
+  console.log("Git hooks enabled: PCA checks commits and branch changes asynchronously");
 }
