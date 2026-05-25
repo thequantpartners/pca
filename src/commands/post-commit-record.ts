@@ -43,8 +43,10 @@ function runPostCommitRecord(): void {
     // Duplicate commits were already recorded by a previous hook run.
   }
 
-  process.stdout.write("\n💡 PCA: Decision pending. Run 'pca commit' to save it.\n");
-  exit(0);
+  setTimeout(() => {
+    process.stdout.write("\n💡 PCA: Decision pending. Run 'pca commit' to save it.\n");
+    process.exit(0);
+  }, 500);
 }
 
 function getLatestGitCommit(branch: string): CommitRecord | undefined {
