@@ -44,6 +44,8 @@ export function printCommandSections(): void {
   console.log(formatCommand("pca status", "Show project memory status"));
   console.log(formatCommand("pca commit", "Record decisions or review pending ones"));
   console.log(formatCommand("pca logs", "List context commit history"));
+  console.log(formatCommand("pca forget", "Deprecate a context commit"));
+  console.log(formatCommand("pca recovery", "Restore a deprecated commit"));
   console.log(formatCommand("pca task", "Generate compact context for your AI agent"));
   console.log(formatCommand("pca doctor", "Diagnose your PCA setup"));
   console.log(formatCommand("pca install-hooks", "Reinstall Git hooks in current project"));

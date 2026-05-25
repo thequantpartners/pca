@@ -6,21 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
-PCA 1.0.0 is an open source CLI that gives your project persistent AI context. Never lose project context again.
-Built for solo builders, vibe coders, indie hackers, and AI builders.
-
-## The Problem
-
-AI agents forget what happened between sessions.
-Architecture decisions get buried in chat history.
-Prompts grow because you keep re-explaining the project.
-Branch switches make context even easier to lose.
-
-## The Solution
-
-PCA gives the project its own memory.
-Markdown stays the source of truth, Git captures the workflow, and SQLite indexes operational state.
-You set it up once per project, then PCA works quietly in the background.
+PCA is an open source CLI that gives your project persistent AI context. It keeps decisions, project memory, branch state, and AI task context close to your code.
 
 ## Installation
 
@@ -33,17 +19,31 @@ cd your-project
 pca init
 ```
 
-`pca init` installs the local memory structure and two Git hooks: `post-commit` for decision capture and `post-checkout` for branch awareness.
+`pca init` creates the local memory structure and installs Git hooks. If the workspace is already initialized, run:
+
+```bash
+pca install-hooks
+```
 
 ## How It Works
 
-PCA integrates with Git so context capture follows the workflow you already use.
+PCA uses Git as the trigger, Markdown as the source of truth, and SQLite in `.pca/pca.db` as the operational index.
+
+After a relevant Git commit, the hook records a pending decision and exits:
 
 ```bash
 git commit -m "feat: implement checkout flow"
 ```
 
-After Git finishes printing its normal output, PCA may ask:
+```text
+💡 PCA: Decision pending. Run 'pca commit' to save it.
+```
+
+Review pending decisions when you are back at the shell:
+
+```bash
+pca commit
+```
 
 ```text
 ┌─────────────────────────────────────────┐
@@ -54,46 +54,94 @@ After Git finishes printing its normal output, PCA may ask:
 > y
 ```
 
-If you answer yes, PCA records the decision in project memory and indexes it by branch.
-If the commit is not relevant, PCA resolves it silently.
+Accepted decisions are recorded in project memory. Skipped decisions are resolved and removed from the pending queue.
 
-Branch changes are tracked too:
+Branch changes are tracked by the `post-checkout` hook so PCA can keep branch-local context state.
+
+## Daily Flow
 
 ```bash
-git switch payments
-```
+# New project
+pca init
+pca bootstrap
+pca task "describe your task"
 
-```text
-# no output
-# PCA updates the active branch context in the background
-```
+# Every day
+git commit -m "feat: something"
+pca commit
+pca task "next task"
 
-The hooks do not block your terminal. They run in the background and keep Git as the natural trigger for context updates.
+# When ready for cloud memory
+pca setup
+pca sync
+```
 
 ## Commands
 
+### Local commands
+
+These work without an OpenAI API key.
+
 | Command | Description |
 | --- | --- |
-| `pca init` | Set up PCA for the project once. |
-| `pca status` | Show current project context status. |
-| `pca commit` | Manually record a decision or milestone. |
-| `pca query` | Search project memory. |
-| `pca task` | Generate compact context for an AI agent. |
-| `pca logs` | Show context commit history. |
-| `pca doctor` | Diagnose local PCA setup and project health. |
+| `pca init` | Initialize PCA memory in this project. |
+| `pca bootstrap` | Generate initial context from an existing project. |
+| `pca status` | Show project memory status. |
+| `pca commit` | Record decisions or review pending ones. |
+| `pca logs` | List active context commit history. |
+| `pca logs --all` | List active and deprecated context commits. |
+| `pca forget` | Deprecate a context commit. |
+| `pca recovery` | Restore a deprecated context commit. |
+| `pca task` | Generate compact context for your AI agent. |
+| `pca doctor` | Diagnose your PCA setup. |
+| `pca install-hooks` | Reinstall Git hooks in the current project. |
+| `pca help` | Show the CLI guide. |
 
-## Philosophy
+### Cloud commands
 
-Markdown files in `pca/` are the source of truth because builders should be able to read and edit memory directly.
-Git hooks capture context at the moment work happens.
-SQLite in `.pca/pca.db` is the operational index for branch awareness, pending prompts, and commit history.
-The agent should execute with context, not be responsible for remembering it.
+These require an OpenAI API key. Run `pca setup` first.
 
-## Roadmap
+| Command | Description |
+| --- | --- |
+| `pca setup` | Configure your OpenAI API key. |
+| `pca sync` | Upload memory to OpenAI Vector Store. |
+| `pca query` | Search memory via RAG. |
+| `pca visual add` | Add image to visual memory. |
+| `pca close` | Close a task and update changelog. |
 
-1.0.0 -> Git-native context memory ✅
-2.0.0 -> PCA Cloud: vector memory
-Future -> Team context and agent handoff
+### PCA Cloud
+
+Coming in `2.0.0`:
+
+| Command | Description |
+| --- | --- |
+| `pca login` | Sign in to PCA Cloud. |
+| `pca logout` | Clear cloud session. |
+| `pca whoami` | Show account status. |
+
+## Forget And Recovery
+
+Use `pca forget` when a context commit is no longer valid. PCA marks it as deprecated instead of deleting it.
+
+```bash
+pca forget
+pca logs --all
+```
+
+Use `pca recovery` to restore a deprecated commit:
+
+```bash
+pca recovery
+```
+
+## Rules
+
+- Local-only mode works with no API key required.
+- Markdown files in `pca/` remain the source of truth.
+- Agents must not read the full `pca/` folder.
+- Use `pca task` before every AI agent session.
+- Use `pca commit` to review pending decisions and record context.
+- Cloud commands require `pca setup` first.
 
 ## License
 

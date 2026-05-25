@@ -46,7 +46,7 @@ function runPostCommitRecord(): void {
   setTimeout(() => {
     process.stdout.write("\n💡 PCA: Decision pending. Run 'pca commit' to save it.\n");
     process.exit(0);
-  }, 500);
+  }, 1500);
 }
 
 function getLatestGitCommit(branch: string): CommitRecord | undefined {
@@ -64,6 +64,7 @@ function getLatestGitCommit(branch: string): CommitRecord | undefined {
       timestamp,
       ynPending: 1,
       ynResponse: null,
+      status: "active",
     };
   } catch {
     return undefined;

@@ -12,6 +12,7 @@ export type CommitRecord = {
   timestamp: string;
   ynPending: 0 | 1;
   ynResponse: "y" | "n" | null;
+  status: "active" | "deprecated";
 };
 
 let db: Database.Database | undefined;
@@ -36,7 +37,8 @@ export function initDB(): void {
       type TEXT NOT NULL,
       timestamp TEXT NOT NULL,
       yn_pending INTEGER DEFAULT 1,
-      yn_response TEXT
+      yn_response TEXT,
+      status TEXT NOT NULL DEFAULT 'active'
     );
 
     CREATE TABLE IF NOT EXISTS branch_state (
@@ -46,6 +48,12 @@ export function initDB(): void {
       context_file TEXT
     );
   `);
+
+  try {
+    database.exec("ALTER TABLE context_commits ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+  } catch {
+    // Column already exists.
+  }
 }
 
 export function getCurrentBranch(): string {
@@ -107,9 +115,10 @@ export function getPendingYN(branch: string): CommitRecord[] {
         type,
         timestamp,
         yn_pending AS ynPending,
-        yn_response AS ynResponse
+        yn_response AS ynResponse,
+        status
       FROM context_commits
-      WHERE branch = ? AND yn_pending = 1
+      WHERE branch = ? AND yn_pending = 1 AND status = 'active'
       ORDER BY timestamp ASC
     `,
     )
@@ -128,6 +137,34 @@ export function resolveYN(id: string, response: "y" | "n"): void {
     `,
     )
     .run(response, id);
+}
+
+export function forgetCommit(id: string): void {
+  getDatabase().prepare("UPDATE context_commits SET status = 'deprecated' WHERE id = ?").run(id);
+}
+
+export function recoverCommit(id: string): void {
+  getDatabase().prepare("UPDATE context_commits SET status = 'active' WHERE id = ?").run(id);
+}
+
+export function getCommits(branch: string, includeDeprecated: boolean): CommitRecord[] {
+  const query = `
+    SELECT
+      id,
+      branch,
+      git_hash AS gitHash,
+      message,
+      type,
+      timestamp,
+      yn_pending AS ynPending,
+      yn_response AS ynResponse,
+      status
+    FROM context_commits
+    WHERE branch = ?${includeDeprecated ? "" : " AND status = 'active'"}
+    ORDER BY timestamp DESC
+  `;
+
+  return getDatabase().prepare(query).all(branch) as CommitRecord[];
 }
 
 function getDatabase(): Database.Database {

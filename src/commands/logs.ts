@@ -1,54 +1,41 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import {
-  allowedContextCommitTypes,
-  ContextCommitLogError,
-  isContextCommitType,
-  readContextCommits,
-} from "../core/context-commits.js";
-import { getProjectRoot } from "../core/config.js";
+import { allowedContextCommitTypes, isContextCommitType } from "../core/context-commits.js";
+import { getCommits, getCurrentBranch, initDB, upsertBranch } from "../core/db.js";
 
 export function registerLogsCommand(program: Command): void {
   program
     .command("logs")
     .description("List local PCA context memory commits")
     .option("--last <number>", "Maximum number of commits to show", "10")
-    .option("--type <type>", "decision | feature | bugfix | architecture | product | general")
-    .action(async (options: { last: string; type?: string }) => {
+    .option("--type <type>", "decision | feature | bugfix | architecture | product | general | git")
+    .option("--all", "Include deprecated commits")
+    .action((options: { last: string; type?: string; all?: boolean }) => {
       const limit = parseLast(options.last);
       const type = options.type?.trim();
-      if (type && !isContextCommitType(type)) {
-        throw new Error(`Invalid --type: ${type}. Allowed values: ${allowedContextCommitTypes()}.`);
+      if (type && type !== "git" && !isContextCommitType(type)) {
+        throw new Error(`Invalid --type: ${type}. Allowed values: ${allowedContextCommitTypes()}, git.`);
       }
 
-      let allCommits;
-      try {
-        allCommits = await readContextCommits(getProjectRoot());
-      } catch (error) {
-        if (error instanceof ContextCommitLogError) {
-          console.log(chalk.bold.cyan("PCA Context Logs"));
-          console.log("");
-          console.log(chalk.yellow(error.message));
-          return;
-        }
-        throw error;
-      }
+      initDB();
+      const branch = getCurrentBranch();
+      upsertBranch(branch);
 
-      const commits = allCommits
+      const commits = getCommits(branch, Boolean(options.all))
         .filter((commit) => !type || commit.type === type)
-        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
         .slice(0, limit);
 
       console.log(chalk.bold.cyan("PCA Context Logs"));
       console.log("");
 
       if (!commits.length) {
-        console.log(type ? `No context commits found for type: ${type}.` : "No context commits found.");
+        console.log(type ? `No context commits found for type: ${type}.` : options.all ? "No context commits found." : "No active context commits found.");
         return;
       }
 
       for (const commit of commits) {
-        console.log(`${commit.timestamp}  ${commit.id}  [${commit.type}] ${commit.message}`);
+        const deprecated = commit.status === "deprecated" ? "[deprecated] " : "";
+        console.log(`${deprecated}${commit.timestamp}  ${commit.id}  [${commit.type}] ${commit.message}`);
       }
     });
 }

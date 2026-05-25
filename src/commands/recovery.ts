@@ -1,19 +1,19 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import {
-  forgetCommit,
   getCommits,
   getCurrentBranch,
   initDB,
+  recoverCommit,
   upsertBranch,
   type CommitRecord,
 } from "../core/db.js";
 import { promptText } from "../core/prompt.js";
 
-export function registerForgetCommand(program: Command): void {
+export function registerRecoveryCommand(program: Command): void {
   program
-    .command("forget")
-    .description("Deprecate a context commit")
+    .command("recovery")
+    .description("Restore a deprecated context commit")
     .argument("[id]", "Context commit id")
     .action(async (id: string | undefined) => {
       initDB();
@@ -21,25 +21,25 @@ export function registerForgetCommand(program: Command): void {
       upsertBranch(branch);
 
       const commits = getCommits(branch, true);
-      const activeCommits = commits.filter((commit) => commit.status === "active");
-      const commit = id ? findCommitById(commits, id) : await chooseCommit(activeCommits);
+      const deprecatedCommits = commits.filter((commit) => commit.status === "deprecated");
+      const commit = id ? findCommitById(commits, id) : await chooseCommit(deprecatedCommits);
 
       if (!commit) {
         return;
       }
 
-      if (commit.status !== "active") {
-        throw new Error(`Commit ${commit.id} is already deprecated.`);
+      if (commit.status !== "deprecated") {
+        throw new Error(`Commit ${commit.id} is not deprecated.`);
       }
 
-      const confirmed = await confirmAction(`Forget '${commit.message}'? (Y/N) `);
+      const confirmed = await confirmAction(`Recover '${commit.message}'? (Y/N) `);
       if (!confirmed) {
-        console.log("Forget cancelled.");
+        console.log("Recovery cancelled.");
         return;
       }
 
-      forgetCommit(commit.id);
-      console.log(chalk.green("✓ Commit marked as deprecated."));
+      recoverCommit(commit.id);
+      console.log(chalk.green("✓ Commit recovered."));
     });
 }
 
@@ -54,7 +54,7 @@ function findCommitById(commits: CommitRecord[], id: string): CommitRecord {
 
 async function chooseCommit(commits: CommitRecord[]): Promise<CommitRecord | undefined> {
   if (!commits.length) {
-    console.log("No active commits to forget.");
+    console.log("No deprecated commits to recover.");
     return undefined;
   }
 

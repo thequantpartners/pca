@@ -19,6 +19,7 @@ import { registerLogsCommand } from "./commands/logs.js";
 import { registerMCPCommand } from "./commands/mcp.js";
 import { registerPostCommitRecordCommand } from "./commands/post-commit-record.js";
 import { registerQueryCommand } from "./commands/query.js";
+import { registerRecoveryCommand } from "./commands/recovery.js";
 import { registerSetupCommand } from "./commands/setup.js";
 import { registerStatusCommand } from "./commands/status.js";
 import { registerSyncCommand } from "./commands/sync.js";
@@ -57,6 +58,7 @@ registerStatusCommand(program);
 registerHealthCommand(program);
 registerDiffCommand(program);
 registerForgetCommand(program);
+registerRecoveryCommand(program);
 registerCommitCommand(program);
 registerLogsCommand(program);
 registerSyncCommand(program);
@@ -85,6 +87,7 @@ function shouldSkipPCAAdvice(actionCommand: Command): boolean {
     "config",
     "install-hooks",
     "forget",
+    "recovery",
     "mcp",
     "audit",
     "_branch-changed",
