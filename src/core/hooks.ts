@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import { promptText } from "./prompt.js";
 
 export const postCommitHook = `#!/bin/sh
-pca _post-commit-check
+pca _post-commit-record
 `;
 
 export const postCheckoutHook = `#!/bin/sh

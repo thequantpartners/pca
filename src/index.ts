@@ -17,7 +17,7 @@ import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
 import { registerLogsCommand } from "./commands/logs.js";
 import { registerMCPCommand } from "./commands/mcp.js";
-import { registerPostCommitCheckCommand } from "./commands/post-commit-check.js";
+import { registerPostCommitRecordCommand } from "./commands/post-commit-record.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerSetupCommand } from "./commands/setup.js";
 import { registerStatusCommand } from "./commands/status.js";
@@ -72,7 +72,7 @@ registerConfigCommand(program);
 registerDoctorCommand(program);
 registerMCPCommand(program);
 registerBranchChangedCommand(program);
-registerPostCommitCheckCommand(program);
+registerPostCommitRecordCommand(program);
 registerHelpCommand(program);
 
 function shouldSkipPCAAdvice(actionCommand: Command): boolean {
@@ -88,7 +88,7 @@ function shouldSkipPCAAdvice(actionCommand: Command): boolean {
     "mcp",
     "audit",
     "_branch-changed",
-    "_post-commit-check",
+    "_post-commit-record",
   ]);
   let current: Command | null = actionCommand;
 
