@@ -76,13 +76,6 @@ async function runPostCommitCheck(): Promise<void> {
     exit(0);
   }
 
-  const tty = openPromptIO();
-  if (!tty) {
-    resolveYN(latestCommit.id, "n");
-    exit(0);
-  }
-  tty.close();
-
   const pendingCommits = getPendingYN(branch);
   for (const commit of pendingCommits) {
     if (!shouldPrompt(commit)) {
@@ -150,21 +143,43 @@ function getLatestGitCommit(): LatestGitCommit | undefined {
 }
 
 function shouldPrompt(commit: CommitRecord): boolean {
+  debugPrompt("heuristic:start", {
+    message: commit.message,
+    platform: process.platform,
+  });
+
   if (process.env.CI === "true" || process.env.PCA_SKIP_PROMPT === "true") {
+    debugPrompt("heuristic:skip-env", {
+      ci: process.env.CI,
+      pcaSkipPrompt: process.env.PCA_SKIP_PROMPT,
+    });
     return false;
   }
 
   const message = commit.message.trim().toLowerCase();
   if (SKIP_PREFIXES.some((prefix) => message.startsWith(prefix))) {
+    debugPrompt("heuristic:skip-prefix", { message });
     return false;
   }
 
-  if (!PROMPT_KEYWORDS.some((keyword) => message.includes(keyword))) {
+  const matchedKeyword = PROMPT_KEYWORDS.find((keyword) => message.includes(keyword));
+  debugPrompt("heuristic:keywords", {
+    matched: Boolean(matchedKeyword),
+    keyword: matchedKeyword ?? null,
+  });
+
+  if (!matchedKeyword) {
     return false;
   }
 
   const changedFiles = getChangedFiles(commit.gitHash);
-  return changedFiles.some(isPromptRelevantFile);
+  const hasRelevantFile = changedFiles.some(isPromptRelevantFile);
+  debugPrompt("heuristic:files", {
+    changedFiles,
+    hasRelevantFile,
+  });
+
+  return hasRelevantFile;
 }
 
 function getChangedFiles(gitHash: string | null): string[] {
@@ -216,6 +231,10 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
 
 function openPromptIO(): TTYHandles | undefined {
   if (process.platform === "win32") {
+    debugPrompt("prompt-io:windows-stdin", {
+      stdinIsTTY: stdin.isTTY,
+      stdoutIsTTY: stdout.isTTY,
+    });
     return openWindowsPromptIO();
   }
 
@@ -233,6 +252,7 @@ function openPromptIO(): TTYHandles | undefined {
         },
       };
     } catch {
+      debugPrompt("prompt-io:dev-tty-open-failed", { platform: process.platform });
       return undefined;
     }
   }
@@ -245,35 +265,60 @@ function openPromptIO(): TTYHandles | undefined {
     };
   }
 
+  debugPrompt("prompt-io:unavailable", {
+    platform: process.platform,
+    stdinIsTTY: stdin.isTTY,
+    stdoutIsTTY: stdout.isTTY,
+  });
   return undefined;
 }
 
-function openWindowsPromptIO(): TTYHandles | undefined {
-  try {
-    const input = stdin as RawModeReadable;
-    const wasRaw = input.isRaw === true;
+function openWindowsPromptIO(): TTYHandles {
+  const input = stdin as RawModeReadable;
+  const wasRaw = input.isRaw === true;
 
+  try {
     stdin.resume();
     input.setRawMode?.(true);
-
-    return {
-      input: stdin,
-      output: stdout,
-      close: () => {
-        input.setRawMode?.(wasRaw);
-      },
-    };
-  } catch {
-    return undefined;
+  } catch (error) {
+    debugPrompt("prompt-io:windows-stdin-setup-failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
+
+  return {
+    input: stdin,
+    output: stdout,
+    close: () => {
+      try {
+        input.setRawMode?.(wasRaw);
+      } catch {
+        // Best effort restore; prompt outcome is already resolved by this point.
+      }
+    },
+  };
 }
 
 function isDevTTYAccessible(): boolean {
   try {
     fs.accessSync("/dev/tty", fs.constants.R_OK | fs.constants.W_OK);
+    debugPrompt("prompt-io:dev-tty-accessible", { platform: process.platform });
     return true;
   } catch {
+    debugPrompt("prompt-io:dev-tty-inaccessible", { platform: process.platform });
     return false;
+  }
+}
+
+function debugPrompt(event: string, payload: Record<string, unknown>): void {
+  if (process.env.PCA_DEBUG_PROMPT !== "true") {
+    return;
+  }
+
+  try {
+    process.stderr.write(`[pca:post-commit-check] ${event} ${JSON.stringify(payload)}\n`);
+  } catch {
+    // Debug logging must never affect the Git hook.
   }
 }
 
