@@ -1,11 +1,18 @@
 export const postCommitHook = `#!/bin/sh
-
 case "$(uname -s 2>/dev/null)" in
   MINGW*|MSYS*|CYGWIN*)
-    sleep 1 && pca _post-commit-check < /dev/tty &
+    if [ -e /dev/tty ]; then
+      sleep 1 && pca _post-commit-check < /dev/tty &
+    else
+      sleep 1 && pca _post-commit-check &
+    fi
     ;;
   *)
-    nohup sh -c 'sleep 1 && pca _post-commit-check < /dev/tty' > /dev/null 2>&1 &
+    if [ -e /dev/tty ]; then
+      nohup sh -c 'sleep 1 && pca _post-commit-check < /dev/tty' > /dev/null 2>&1 &
+    else
+      nohup sh -c 'sleep 1 && pca _post-commit-check' > /dev/null 2>&1 &
+    fi
     ;;
 esac
 `;
