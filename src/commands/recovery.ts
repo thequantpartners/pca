@@ -20,7 +20,7 @@ export function registerRecoveryCommand(program: Command): void {
       const branch = getCurrentBranch();
       upsertBranch(branch);
 
-      const commits = getCommits(branch, true);
+      const commits = getCommits(true);
       const deprecatedCommits = commits.filter((commit) => commit.status === "deprecated");
       const commit = id ? findCommitById(commits, id) : await chooseCommit(deprecatedCommits);
 
@@ -59,7 +59,9 @@ async function chooseCommit(commits: CommitRecord[]): Promise<CommitRecord | und
   }
 
   for (const [index, commit] of commits.entries()) {
-    console.log(`${index + 1}. [${formatShortId(commit.id)}] ${commit.message} — ${formatDateTime(commit.timestamp)}`);
+    console.log(
+      `${index + 1}. [${formatShortId(commit.id)}] ${commit.message} — ${commit.branch} — ${formatDateTime(commit.timestamp)}`,
+    );
   }
 
   const selected = Number.parseInt((await promptText("Selecciona número: ")).trim(), 10);

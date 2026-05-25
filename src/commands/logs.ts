@@ -21,7 +21,7 @@ export function registerLogsCommand(program: Command): void {
       const branch = getCurrentBranch();
       upsertBranch(branch);
 
-      const commits = getCommits(branch, Boolean(options.all))
+      const commits = getCommits(Boolean(options.all))
         .filter((commit) => !type || commit.type === type)
         .slice(0, limit);
 

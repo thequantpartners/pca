@@ -147,7 +147,7 @@ export function recoverCommit(id: string): void {
   getDatabase().prepare("UPDATE context_commits SET status = 'active' WHERE id = ?").run(id);
 }
 
-export function getCommits(branch: string, includeDeprecated: boolean): CommitRecord[] {
+export function getCommits(includeDeprecated: boolean): CommitRecord[] {
   const query = `
     SELECT
       id,
@@ -160,11 +160,11 @@ export function getCommits(branch: string, includeDeprecated: boolean): CommitRe
       yn_response AS ynResponse,
       status
     FROM context_commits
-    WHERE branch = ?${includeDeprecated ? "" : " AND status = 'active'"}
+    ${includeDeprecated ? "" : "WHERE status = 'active'"}
     ORDER BY timestamp DESC
   `;
 
-  return getDatabase().prepare(query).all(branch) as CommitRecord[];
+  return getDatabase().prepare(query).all() as CommitRecord[];
 }
 
 function getDatabase(): Database.Database {
