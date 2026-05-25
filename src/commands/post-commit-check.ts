@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import fs, { existsSync } from "node:fs";
+import fs from "node:fs";
 import { exit, stdin, stdout } from "node:process";
 import { createInterface, type Interface } from "node:readline";
 import { Command } from "commander";
@@ -61,17 +61,24 @@ async function runPostCommitCheck(): Promise<void> {
 
   const branch = getCurrentBranch();
   upsertBranch(branch);
-  ensureLatestGitCommitIsPending(branch);
-
-  const pendingCommits = getPendingYN(branch);
-  if (!existsSync("/dev/tty")) {
-    for (const commit of pendingCommits) {
-      resolveYN(commit.id, "n");
-    }
-
+  const latestCommit = recordLatestGitCommit(branch);
+  if (!latestCommit) {
     exit(0);
   }
 
+  if (!shouldPrompt(latestCommit)) {
+    resolveYN(latestCommit.id, "n");
+    exit(0);
+  }
+
+  const tty = openTTY();
+  if (!tty) {
+    resolveYN(latestCommit.id, "n");
+    exit(0);
+  }
+  tty.close();
+
+  const pendingCommits = getPendingYN(branch);
   for (const commit of pendingCommits) {
     if (!shouldPrompt(commit)) {
       resolveYN(commit.id, "n");
@@ -87,24 +94,37 @@ async function runPostCommitCheck(): Promise<void> {
   }
 }
 
-function ensureLatestGitCommitIsPending(branch: string): void {
+function recordLatestGitCommit(branch: string): CommitRecord | undefined {
   const latestCommit = getLatestGitCommit();
   if (!latestCommit) {
-    return;
+    return undefined;
   }
+
+  const commit: CommitRecord = {
+    id: latestCommit.id,
+    branch,
+    gitHash: latestCommit.gitHash,
+    message: latestCommit.message,
+    type: "git",
+    timestamp: latestCommit.timestamp,
+    ynPending: 1,
+    ynResponse: null,
+  };
 
   try {
     recordCommit({
-      id: latestCommit.id,
-      branch,
+      id: commit.id,
+      branch: commit.branch,
       gitHash: latestCommit.gitHash,
-      message: latestCommit.message,
-      type: "git",
-      timestamp: latestCommit.timestamp,
+      message: commit.message,
+      type: commit.type,
+      timestamp: commit.timestamp,
     });
   } catch {
     // Duplicate git commits have already been indexed; keep processing pending rows.
   }
+
+  return commit;
 }
 
 function getLatestGitCommit(): LatestGitCommit | undefined {
@@ -190,28 +210,41 @@ async function promptForDecision(commit: CommitRecord): Promise<"y" | "n"> {
 }
 
 function openTTY(): TTYHandles | undefined {
-  try {
-    const input = fs.createReadStream("/dev/tty");
-    const output = fs.createWriteStream("/dev/tty");
+  if (isDevTTYAccessible()) {
+    try {
+      const input = fs.createReadStream("/dev/tty");
+      const output = fs.createWriteStream("/dev/tty");
 
-    return {
-      input,
-      output,
-      close: () => {
-        input.destroy();
-        output.end();
-      },
-    };
-  } catch {
-    if (stdin.isTTY && stdout.isTTY) {
       return {
-        input: stdin,
-        output: stdout,
-        close: () => {},
+        input,
+        output,
+        close: () => {
+          input.destroy();
+          output.end();
+        },
       };
+    } catch {
+      return undefined;
     }
+  }
 
-    return undefined;
+  if (stdin.isTTY && stdout.isTTY) {
+    return {
+      input: stdin,
+      output: stdout,
+      close: () => {},
+    };
+  }
+
+  return undefined;
+}
+
+function isDevTTYAccessible(): boolean {
+  try {
+    fs.accessSync("/dev/tty", fs.constants.R_OK | fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
   }
 }
 
