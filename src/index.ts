@@ -12,6 +12,7 @@ import { registerForgetCommand } from "./commands/forget.js";
 import { registerHealthCommand } from "./commands/health.js";
 import { registerHelpCommand } from "./commands/help.js";
 import { registerInitCommand } from "./commands/init.js";
+import { registerInstallHooksCommand } from "./commands/install-hooks.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
 import { registerLogsCommand } from "./commands/logs.js";
@@ -49,6 +50,7 @@ program
   });
 
 registerInitCommand(program);
+registerInstallHooksCommand(program);
 registerAuditCommand(program);
 registerBootstrapCommand(program);
 registerStatusCommand(program);
@@ -81,6 +83,7 @@ function shouldSkipPCAAdvice(actionCommand: Command): boolean {
     "logout",
     "whoami",
     "config",
+    "install-hooks",
     "forget",
     "mcp",
     "audit",
