@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import fs from "node:fs";
-import { stdin, stdout } from "node:process";
+import fs, { existsSync } from "node:fs";
+import { exit, stdin, stdout } from "node:process";
 import { createInterface, type Interface } from "node:readline";
 import { Command } from "commander";
 import {
@@ -64,6 +64,14 @@ async function runPostCommitCheck(): Promise<void> {
   ensureLatestGitCommitIsPending(branch);
 
   const pendingCommits = getPendingYN(branch);
+  if (!existsSync("/dev/tty")) {
+    for (const commit of pendingCommits) {
+      resolveYN(commit.id, "n");
+    }
+
+    exit(0);
+  }
+
   for (const commit of pendingCommits) {
     if (!shouldPrompt(commit)) {
       resolveYN(commit.id, "n");
