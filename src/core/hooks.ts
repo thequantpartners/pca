@@ -4,18 +4,7 @@ import fs from "fs-extra";
 import { promptText } from "./prompt.js";
 
 export const postCommitHook = `#!/bin/sh
-case "$(uname -s 2>/dev/null)" in
-  MINGW*|MSYS*|CYGWIN*)
-    sleep 1 && pca _post-commit-check &
-    ;;
-  *)
-    if [ -e /dev/tty ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
-      nohup sh -c 'sleep 1 && pca _post-commit-check < /dev/tty' > /dev/null 2>&1 &
-    else
-      nohup sh -c 'sleep 1 && pca _post-commit-check' > /dev/null 2>&1 &
-    fi
-    ;;
-esac
+pca _post-commit-check
 `;
 
 export const postCheckoutHook = `#!/bin/sh
