@@ -1036,3 +1036,39 @@ test("post-rewrite archives deleted branch context after confirmation", () => {
   const rows = readContextRows(root);
   assert.ok(rows.some((row) => row.branch === "feature/delete-me" && row.status === "archived"));
 });
+
+test("branch deletion hook path prompts through branch-changed", () => {
+  const root = tempDir("branch-delete");
+  const env = { PCA_HOME: tempDir("home") };
+  writeInitializedProject(root);
+  initGitRepo(root);
+  runGit(["checkout", "-b", "feature/login"], root);
+  runCli(["commit", "Deleted login context", "--type", "decision"], { cwd: root, env });
+  runGit(["checkout", "main"], root);
+  runGit(["branch", "-D", "feature/login"], root);
+
+  const result = runCli(["_branch-changed", "--deleted-branch", "feature/login"], { cwd: root, env, input: "y\n" });
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Branch feature\/login was deleted\. Archive its context\?/);
+  assert.match(result.stdout, /PCA context archived for feature\/login/);
+
+  const rows = readContextRows(root);
+  assert.ok(rows.some((row) => row.branch === "feature/login" && row.status === "archived"));
+});
+
+test("installed hooks pass branch deletion to branch-changed", () => {
+  const root = tempDir("hooks-delete");
+  const env = { PCA_HOME: tempDir("home") };
+  runGit(["init"], root);
+
+  const install = runCli(["install-hooks"], { cwd: root, env });
+  assert.equal(install.code, 0, install.stderr);
+
+  const postCheckout = fs.readFileSync(path.join(root, ".git", "hooks", "post-checkout"), "utf8");
+  assert.match(postCheckout, /pca _branch-changed "\$NEW_HEAD"/);
+
+  const referenceTransaction = fs.readFileSync(path.join(root, ".git", "hooks", "reference-transaction"), "utf8");
+  assert.match(referenceTransaction, /refs\/heads\/\*/);
+  assert.match(referenceTransaction, /0000000000000000000000000000000000000000/);
+  assert.match(referenceTransaction, /pca _branch-changed --deleted-branch "\$BRANCH_NAME"/);
+});

@@ -17,6 +17,7 @@ const {
   postCheckoutHook,
   postMergeHook,
   postRewriteHook,
+  referenceTransactionHook,
 } = await loadHooks();
 
 fs.mkdirSync(hooksDir, { recursive: true });
@@ -25,6 +26,7 @@ const hooks = [
   ["post-checkout", postCheckoutHook],
   ["post-merge", postMergeHook],
   ["post-rewrite", postRewriteHook],
+  ["reference-transaction", referenceTransactionHook],
 ];
 
 for (const [name, content] of hooks) {
@@ -49,6 +51,7 @@ async function loadHooks() {
       postCheckoutHook: extractHook(source, "postCheckoutHook"),
       postMergeHook: extractHook(source, "postMergeHook"),
       postRewriteHook: extractHook(source, "postRewriteHook"),
+      referenceTransactionHook: extractHook(source, "referenceTransactionHook"),
     };
   }
 }

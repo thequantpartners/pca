@@ -13,25 +13,32 @@ export function registerBranchChangedCommand(program: Command): void {
   program
     .command("_branch-changed", { hidden: true })
     .argument("[newHead]", "New checkout ref")
-    .action(async () => {
+    .option("--deleted-branch <branch>", "Deleted branch name")
+    .action(async (_newHead: string | undefined, options: { deletedBranch?: string }) => {
       try {
         initDB();
         const branch = getCurrentBranch();
         upsertBranch(branch);
-        console.log(`PCA context switched to ${branch}`);
-        await promptForDeletedBranches(branch);
+        if (!options.deletedBranch) {
+          console.log(`PCA context switched to ${branch}`);
+        }
+        await promptForDeletedBranches(branch, options.deletedBranch);
       } catch {
         // Internal hook command: branch awareness must never surface errors to Git.
       }
     });
 }
 
-async function promptForDeletedBranches(currentBranch: string): Promise<void> {
+async function promptForDeletedBranches(currentBranch: string, preferredBranch?: string): Promise<void> {
   const deletedBranches = getKnownBranches().filter(
     (branch) => branch !== currentBranch && !gitBranchExists(branch),
   );
+  const orderedBranches =
+    preferredBranch && deletedBranches.includes(preferredBranch)
+      ? [preferredBranch, ...deletedBranches.filter((branch) => branch !== preferredBranch)]
+      : deletedBranches;
 
-  for (const branch of deletedBranches) {
+  for (const branch of orderedBranches) {
     const answer = (await promptText(`Branch ${branch} was deleted. Archive its context? [y/n] `)).trim().toLowerCase();
     if (answer === "y" || answer === "yes") {
       archiveBranchContext(branch);

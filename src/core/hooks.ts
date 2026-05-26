@@ -26,6 +26,30 @@ export const postRewriteHook = `#!/bin/sh
 pca _post-rewrite
 `;
 
+export const referenceTransactionHook = `#!/bin/sh
+
+STATE="$1"
+
+if [ "$STATE" = "committed" ]; then
+  while read OLD_SHA NEW_SHA REF_NAME; do
+    case "$REF_NAME" in
+      refs/heads/*)
+        case "$NEW_SHA" in
+          0000000000000000000000000000000000000000)
+            BRANCH_NAME="\${REF_NAME#refs/heads/}"
+            if [ -e /dev/tty ] && [ -r /dev/tty ]; then
+              pca _branch-changed --deleted-branch "$BRANCH_NAME" < /dev/tty
+            else
+              pca _branch-changed --deleted-branch "$BRANCH_NAME"
+            fi
+            ;;
+        esac
+        ;;
+    esac
+  done
+fi
+`;
+
 export type InstallGitHooksOptions = {
   overwriteExisting?: boolean;
   requireGitDirectory?: boolean;
@@ -57,6 +81,7 @@ export async function installGitHooks(root: string, options: InstallGitHooksOpti
     { name: "post-checkout", content: postCheckoutHook },
     { name: "post-merge", content: postMergeHook },
     { name: "post-rewrite", content: postRewriteHook },
+    { name: "reference-transaction", content: referenceTransactionHook },
   ];
 
   for (const hook of hooks) {
@@ -86,5 +111,5 @@ export async function installGitHooks(root: string, options: InstallGitHooksOpti
     console.log(chalk.green(`Git hook installed: ${relativeHookPath}`));
   }
 
-  console.log("Git hooks enabled: PCA checks commits, branch changes, merges, and rewrites");
+  console.log("Git hooks enabled: PCA checks commits, branch changes, merges, rewrites, and branch deletion");
 }
