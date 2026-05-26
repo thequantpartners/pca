@@ -2,12 +2,7 @@ import path from "node:path";
 import { Command } from "commander";
 import chalk from "chalk";
 import { loadAuthSession } from "../core/auth.js";
-import {
-  ContextCommitLogError,
-  latestContextCommit,
-  readContextCommits,
-  type ContextCommit,
-} from "../core/context-commits.js";
+import { latestContextCommit, readContextCommits, type ContextCommit } from "../core/context-commits.js";
 import { getProjectRoot, loadConfig } from "../core/config.js";
 import { formatHealthOutput, getAllHealthChecks } from "../core/health-check.js";
 import { getLocalProjectStatus, type LocalProjectStatus } from "../core/project-status.js";
@@ -23,17 +18,7 @@ export function registerStatusCommand(program: Command): void {
     .action(async () => {
       const root = getProjectRoot();
       const project = await getLocalProjectStatus(root);
-      let commits: ContextCommit[] = [];
-      let commitLogWarning: string | undefined;
-      try {
-        commits = await readContextCommits(root);
-      } catch (error) {
-        if (error instanceof ContextCommitLogError) {
-          commitLogWarning = error.message;
-        } else {
-          throw error;
-        }
-      }
+      const commits: ContextCommit[] = await readContextCommits(root);
 
       const latest = latestContextCommit(commits);
       const session = await loadAuthSession();
@@ -43,9 +28,6 @@ export function registerStatusCommand(program: Command): void {
         console.log(`${chalk.yellow("\u25cb")} ${chalk.white("PCA not initialized in this folder")}`);
         console.log(`  ${chalk.gray("Run:")} ${chalk.white("pca init to get started")}`);
         printTestCompatibilityLines(project, commits, latest, session, key);
-        if (commitLogWarning) {
-          console.log(chalk.yellow(commitLogWarning));
-        }
         return;
       }
 
@@ -66,9 +48,6 @@ export function registerStatusCommand(program: Command): void {
       console.log(chalk.gray(separator));
       console.log(`${chalk.cyan("Next:".padEnd(12))}${chalk.white(nextStep)}`);
       printTestCompatibilityLines(project, commits, latest, session, key);
-      if (commitLogWarning) {
-        console.log(chalk.yellow(commitLogWarning));
-      }
       const health = await getAllHealthChecks(root);
       console.log(formatHealthOutput(health));
     });

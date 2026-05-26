@@ -9,29 +9,25 @@ import {
 } from "../core/db.js";
 import { promptText } from "../core/prompt.js";
 
-export function registerBranchChangedCommand(program: Command): void {
-  program
-    .command("_branch-changed", { hidden: true })
-    .argument("[newHead]", "New checkout ref")
-    .action(async () => {
-      try {
-        initDB();
-        const branch = getCurrentBranch();
-        upsertBranch(branch);
-        console.log(`PCA context switched to ${branch}`);
-        await promptForDeletedBranches(branch);
-      } catch {
-        // Internal hook command: branch awareness must never surface errors to Git.
-      }
-    });
+export function registerPostRewriteCommand(program: Command): void {
+  program.command("_post-rewrite", { hidden: true }).action(async () => {
+    try {
+      initDB();
+      const currentBranch = getCurrentBranch();
+      upsertBranch(currentBranch);
+      await promptForDeletedBranches(currentBranch);
+    } catch {
+      // Internal hook command: never break Git rewrite completion.
+    }
+  });
 }
 
 async function promptForDeletedBranches(currentBranch: string): Promise<void> {
-  const deletedBranches = getKnownBranches().filter(
-    (branch) => branch !== currentBranch && !gitBranchExists(branch),
-  );
+  for (const branch of getKnownBranches()) {
+    if (branch === currentBranch || gitBranchExists(branch)) {
+      continue;
+    }
 
-  for (const branch of deletedBranches) {
     const answer = (await promptText(`Branch ${branch} was deleted. Archive its context? [y/n] `)).trim().toLowerCase();
     if (answer === "y" || answer === "yes") {
       archiveBranchContext(branch);

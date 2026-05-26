@@ -29,7 +29,7 @@ export function registerLogsCommand(program: Command): void {
       console.log("");
 
       if (!commits.length) {
-        console.log(type ? `No context commits found for type: ${type}.` : options.all ? "No context commits found." : "No active context commits found.");
+        console.log(type ? `No context commits found for type: ${type}.` : "No context commits found.");
         return;
       }
 

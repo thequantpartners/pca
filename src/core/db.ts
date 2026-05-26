@@ -12,7 +12,7 @@ export type CommitRecord = {
   timestamp: string;
   ynPending: 0 | 1;
   ynResponse: "y" | "n" | null;
-  status: "active" | "deprecated";
+  status: "staged" | "active" | "deprecated" | "archived";
 };
 
 let db: Database.Database | undefined;
@@ -20,6 +20,7 @@ let dbPath: string | undefined;
 
 export function initDB(): void {
   const database = getDatabase();
+  removeLegacyContextCommitLog();
 
   database.exec(`
     CREATE TABLE IF NOT EXISTS branches (
@@ -49,11 +50,9 @@ export function initDB(): void {
     );
   `);
 
-  try {
-    database.exec("ALTER TABLE context_commits ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
-  } catch {
-    // Column already exists.
-  }
+  ensureColumn(database, "context_commits", "branch", "TEXT NOT NULL DEFAULT 'main'");
+  ensureColumn(database, "context_commits", "status", "TEXT NOT NULL DEFAULT 'active'");
+  database.exec("UPDATE context_commits SET status = 'active' WHERE status IS NULL OR status = ''");
 }
 
 export function getCurrentBranch(): string {
@@ -92,15 +91,28 @@ export function recordCommit(params: {
   message: string;
   type: string;
   timestamp: string;
+  ynPending?: 0 | 1;
+  ynResponse?: "y" | "n" | null;
+  status?: CommitRecord["status"];
 }): void {
   getDatabase()
     .prepare(
       `
-      INSERT INTO context_commits (id, branch, git_hash, message, type, timestamp, yn_pending)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO context_commits (id, branch, git_hash, message, type, timestamp, yn_pending, yn_response, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     )
-    .run(params.id, params.branch, params.gitHash || null, params.message, params.type, params.timestamp);
+    .run(
+      params.id,
+      params.branch,
+      params.gitHash || null,
+      params.message,
+      params.type,
+      params.timestamp,
+      params.ynPending ?? 1,
+      params.ynResponse ?? null,
+      params.status ?? "active",
+    );
 }
 
 export function getPendingYN(branch: string): CommitRecord[] {
@@ -147,7 +159,67 @@ export function recoverCommit(id: string): void {
   getDatabase().prepare("UPDATE context_commits SET status = 'active' WHERE id = ?").run(id);
 }
 
+export function archiveBranchContext(branch: string): void {
+  getDatabase()
+    .prepare("UPDATE context_commits SET status = 'archived' WHERE branch = ? AND status IN ('active', 'staged')")
+    .run(branch);
+}
+
+export function copyBranchCommitsToBranch(sourceBranch: string, targetBranch: string, ids?: string[]): number {
+  const sourceCommits = getCommitsByBranch(sourceBranch).filter((commit) => !ids || ids.includes(commit.id));
+  const database = getDatabase();
+  let copied = 0;
+
+  for (const commit of sourceCommits) {
+    const id = `${commit.id}-merged-${targetBranch.replace(/[^A-Za-z0-9_.-]+/g, "-")}`;
+    try {
+      database
+        .prepare(
+          `
+          INSERT INTO context_commits (id, branch, git_hash, message, type, timestamp, yn_pending, yn_response, status)
+          VALUES (?, ?, ?, ?, ?, ?, 0, 'y', 'active')
+        `,
+        )
+        .run(id, targetBranch, commit.gitHash, commit.message, commit.type, new Date().toISOString());
+      copied += 1;
+    } catch {
+      // Already merged into this target branch.
+    }
+  }
+
+  return copied;
+}
+
+export function getCommitsByBranch(branch: string, includeArchived = false): CommitRecord[] {
+  const statusClause = includeArchived ? "" : "AND status = 'active'";
+  return getDatabase()
+    .prepare(
+      `
+      SELECT
+        id,
+        branch,
+        git_hash AS gitHash,
+        message,
+        type,
+        timestamp,
+        yn_pending AS ynPending,
+        yn_response AS ynResponse,
+        status
+      FROM context_commits
+      WHERE branch = ? ${statusClause}
+      ORDER BY timestamp DESC
+    `,
+    )
+    .all(branch) as CommitRecord[];
+}
+
+export function getKnownBranches(): string[] {
+  const rows = getDatabase().prepare("SELECT name FROM branches ORDER BY name ASC").all() as Array<{ name: string }>;
+  return rows.map((row) => row.name);
+}
+
 export function getCommits(includeDeprecated: boolean): CommitRecord[] {
+  const whereClause = includeDeprecated ? "WHERE status != 'staged'" : "WHERE status = 'active'";
   const query = `
     SELECT
       id,
@@ -160,11 +232,49 @@ export function getCommits(includeDeprecated: boolean): CommitRecord[] {
       yn_response AS ynResponse,
       status
     FROM context_commits
-    ${includeDeprecated ? "" : "WHERE status = 'active'"}
+    ${whereClause}
     ORDER BY timestamp DESC
   `;
 
   return getDatabase().prepare(query).all() as CommitRecord[];
+}
+
+export function getStagedCommits(): CommitRecord[] {
+  return getDatabase()
+    .prepare(
+      `
+      SELECT
+        id,
+        branch,
+        git_hash AS gitHash,
+        message,
+        type,
+        timestamp,
+        yn_pending AS ynPending,
+        yn_response AS ynResponse,
+        status
+      FROM context_commits
+      WHERE status = 'staged'
+      ORDER BY timestamp ASC, id ASC
+    `,
+    )
+    .all() as CommitRecord[];
+}
+
+export function confirmStagedCommits(): number {
+  const result = getDatabase()
+    .prepare("UPDATE context_commits SET status = 'active', yn_pending = 0, yn_response = 'y' WHERE status = 'staged'")
+    .run();
+  return result.changes;
+}
+
+export function dropStagedCommit(id: string): void {
+  getDatabase().prepare("DELETE FROM context_commits WHERE id = ? AND status = 'staged'").run(id);
+}
+
+export function clearStagedCommits(): number {
+  const result = getDatabase().prepare("DELETE FROM context_commits WHERE status = 'staged'").run();
+  return result.changes;
 }
 
 function getDatabase(): Database.Database {
@@ -177,4 +287,24 @@ function getDatabase(): Database.Database {
   db = new Database(currentDbPath);
   dbPath = currentDbPath;
   return db;
+}
+
+function removeLegacyContextCommitLog(): void {
+  const legacyPath = path.join(process.cwd(), ".pca", "context-commits.json");
+  try {
+    if (fs.existsSync(legacyPath)) {
+      fs.rmSync(legacyPath);
+    }
+  } catch {
+    // Legacy cleanup must not block DB initialization.
+  }
+}
+
+function ensureColumn(database: Database.Database, table: string, column: string, definition: string): void {
+  const columns = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (columns.some((item) => item.name === column)) {
+    return;
+  }
+
+  database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }

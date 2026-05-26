@@ -14,15 +14,16 @@ NEW_HEAD="$2"
 BRANCH_CHECKOUT="$3"
 
 if [ "$BRANCH_CHECKOUT" = "1" ]; then
-  case "$(uname -s 2>/dev/null)" in
-    MINGW*|MSYS*|CYGWIN*)
-      pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
-      ;;
-    *)
-      nohup pca _branch-changed "$NEW_HEAD" > /dev/null 2>&1 &
-      ;;
-  esac
+  pca _branch-changed "$NEW_HEAD"
 fi
+`;
+
+export const postMergeHook = `#!/bin/sh
+pca _post-merge
+`;
+
+export const postRewriteHook = `#!/bin/sh
+pca _post-rewrite
 `;
 
 export type InstallGitHooksOptions = {
@@ -54,6 +55,8 @@ export async function installGitHooks(root: string, options: InstallGitHooksOpti
   const hooks = [
     { name: "post-commit", content: postCommitHook },
     { name: "post-checkout", content: postCheckoutHook },
+    { name: "post-merge", content: postMergeHook },
+    { name: "post-rewrite", content: postRewriteHook },
   ];
 
   for (const hook of hooks) {
@@ -83,5 +86,5 @@ export async function installGitHooks(root: string, options: InstallGitHooksOpti
     console.log(chalk.green(`Git hook installed: ${relativeHookPath}`));
   }
 
-  console.log("Git hooks enabled: PCA checks commits and branch changes asynchronously");
+  console.log("Git hooks enabled: PCA checks commits, branch changes, merges, and rewrites");
 }

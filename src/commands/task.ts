@@ -13,7 +13,7 @@ import { retrieveContext } from "../core/retrieval.js";
 export function registerTaskCommand(program: Command): void {
   program
     .command("task")
-    .description("Generate compact PCA context for an AI development task")
+    .description("Deprecated: use pca context for current project context")
     .argument("<task>", "Task description")
     .option("--api-key <key>", "OpenAI API key for this command")
     .action(async (task: string) => {

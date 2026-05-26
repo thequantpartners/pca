@@ -6,6 +6,7 @@ import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerCloseCommand } from "./commands/close.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
+import { registerContextCommand } from "./commands/context.js";
 import { registerDiffCommand } from "./commands/diff.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerForgetCommand } from "./commands/forget.js";
@@ -18,9 +19,12 @@ import { registerLogoutCommand } from "./commands/logout.js";
 import { registerLogsCommand } from "./commands/logs.js";
 import { registerMCPCommand } from "./commands/mcp.js";
 import { registerPostCommitRecordCommand } from "./commands/post-commit-record.js";
+import { registerPostMergeCommand } from "./commands/post-merge.js";
+import { registerPostRewriteCommand } from "./commands/post-rewrite.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerRecoveryCommand } from "./commands/recovery.js";
 import { registerSetupCommand } from "./commands/setup.js";
+import { registerStagedCommand } from "./commands/staged.js";
 import { registerStatusCommand } from "./commands/status.js";
 import { registerSyncCommand } from "./commands/sync.js";
 import { registerTaskCommand } from "./commands/task.js";
@@ -61,6 +65,8 @@ registerForgetCommand(program);
 registerRecoveryCommand(program);
 registerCommitCommand(program);
 registerLogsCommand(program);
+registerStagedCommand(program);
+registerContextCommand(program);
 registerSyncCommand(program);
 registerQueryCommand(program);
 registerTaskCommand(program);
@@ -75,6 +81,8 @@ registerDoctorCommand(program);
 registerMCPCommand(program);
 registerBranchChangedCommand(program);
 registerPostCommitRecordCommand(program);
+registerPostMergeCommand(program);
+registerPostRewriteCommand(program);
 registerHelpCommand(program);
 
 function shouldSkipPCAAdvice(actionCommand: Command): boolean {
@@ -85,6 +93,8 @@ function shouldSkipPCAAdvice(actionCommand: Command): boolean {
     "logout",
     "whoami",
     "config",
+    "context",
+    "staged",
     "install-hooks",
     "forget",
     "recovery",
@@ -92,6 +102,8 @@ function shouldSkipPCAAdvice(actionCommand: Command): boolean {
     "audit",
     "_branch-changed",
     "_post-commit-record",
+    "_post-merge",
+    "_post-rewrite",
   ]);
   let current: Command | null = actionCommand;
 

@@ -38,13 +38,16 @@ function runPostCommitRecord(): void {
       message: commit.message,
       type: commit.type,
       timestamp: commit.timestamp,
+      ynPending: 0,
+      ynResponse: null,
+      status: "staged",
     });
   } catch {
     // Duplicate commits were already recorded by a previous hook run.
   }
 
   setTimeout(() => {
-    process.stdout.write("\n💡 PCA: Decision pending. Run 'pca commit' to save it.\n");
+    process.stdout.write("\nPCA: Context staged. Run 'pca staged commit' to confirm it.\n");
     process.exit(0);
   }, 1500);
 }
@@ -62,9 +65,9 @@ function getLatestGitCommit(branch: string): CommitRecord | undefined {
       message,
       type: "git",
       timestamp,
-      ynPending: 1,
+      ynPending: 0,
       ynResponse: null,
-      status: "active",
+      status: "staged",
     };
   } catch {
     return undefined;

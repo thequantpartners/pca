@@ -74,7 +74,7 @@ async function readLocalSearchCandidates(root: string): Promise<VectorSearchResu
     const commits = await readContextCommits(root);
     candidates.push(
       ...commits.map((commit) => ({
-        path: ".pca/context-commits.json",
+        path: ".pca/pca.db",
         text: [`[${commit.type}] ${commit.message}`, `Timestamp: ${commit.timestamp}`, `ID: ${commit.id}`].join("\n"),
         source: "local" as const,
       })),

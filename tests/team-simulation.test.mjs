@@ -101,10 +101,6 @@ function writeLargeContextFile() {
   fs.writeFileSync(path.join(projectRoot, "pca", "decisions", "sprint-context-load.md"), warningText, "utf8");
 }
 
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, relativePath), "utf8"));
-}
-
 try {
   fs.writeFileSync(
     path.join(projectRoot, "package.json"),
@@ -188,9 +184,13 @@ try {
     stdout: [/Ana: define sprint API contract/, /Ben: build dashboard status panel/, /Cy: add regression coverage/],
   });
 
-  const commits = readJson(".pca/context-commits.json");
-  if (commits.length < 6) {
-    fail("Check context commit file", `Expected at least 6 context commits, found ${commits.length}.`);
+  const allLogs = runCli(["logs", "--last", "10"]);
+  const recordedCommits = (allLogs.output.match(/\d{4}-\d{2}-\d{2}T/g) ?? []).length;
+  if (recordedCommits < 6) {
+    fail("Check context commit SQLite records", `Expected at least 6 context commits, found ${recordedCommits}.`, allLogs);
+  }
+  if (fs.existsSync(path.join(projectRoot, ".pca", "context-commits.json"))) {
+    fail("Check legacy context commit JSON", "Expected .pca/context-commits.json to be absent.");
   }
   assertFile("Check generated task context file", ".pca/last-task-context.md", /Verify context logs regression coverage/);
 

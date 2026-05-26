@@ -1,11 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
-import {
-  ContextCommitLogError,
-  readContextCommits,
-  type ContextCommit,
-} from "../core/context-commits.js";
+import { readContextCommits, type ContextCommit } from "../core/context-commits.js";
 import { getConfigPath, getProjectRoot, loadConfig } from "../core/config.js";
 import { listSyncFiles, relativePosix } from "../core/files.js";
 import { getLocalProjectStatus, requireInitializedLocalProject } from "../core/project-status.js";
@@ -20,18 +16,7 @@ export function registerDiffCommand(program: Command): void {
       const root = getProjectRoot();
       requireInitializedLocalProject(await getLocalProjectStatus(root));
 
-      let commits: ContextCommit[];
-      try {
-        commits = await readContextCommits(root);
-      } catch (error) {
-        if (error instanceof ContextCommitLogError) {
-          console.log(chalk.bold.cyan("PCA Context Diff"));
-          console.log("");
-          console.log(chalk.yellow(error.message));
-          return;
-        }
-        throw error;
-      }
+      const commits: ContextCommit[] = await readContextCommits(root);
 
       const config = await loadConfig(root);
       const since = await diffStartDate(root, config.createdAt, commits);

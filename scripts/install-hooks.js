@@ -12,17 +12,29 @@ if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) {
 }
 
 const hooksDir = path.join(gitDir, "hooks");
-const postCommitHookPath = path.join(hooksDir, "post-commit");
-const postCheckoutHookPath = path.join(hooksDir, "post-checkout");
-const { postCommitHook, postCheckoutHook } = await loadHooks();
+const {
+  postCommitHook,
+  postCheckoutHook,
+  postMergeHook,
+  postRewriteHook,
+} = await loadHooks();
 
 fs.mkdirSync(hooksDir, { recursive: true });
-fs.writeFileSync(postCommitHookPath, postCommitHook, "utf8");
-fs.writeFileSync(postCheckoutHookPath, postCheckoutHook, "utf8");
+const hooks = [
+  ["post-commit", postCommitHook],
+  ["post-checkout", postCheckoutHook],
+  ["post-merge", postMergeHook],
+  ["post-rewrite", postRewriteHook],
+];
+
+for (const [name, content] of hooks) {
+  fs.writeFileSync(path.join(hooksDir, name), content, "utf8");
+}
 
 if (process.platform !== "win32") {
-  fs.chmodSync(postCommitHookPath, 0o755);
-  fs.chmodSync(postCheckoutHookPath, 0o755);
+  for (const [name] of hooks) {
+    fs.chmodSync(path.join(hooksDir, name), 0o755);
+  }
 }
 
 async function loadHooks() {
@@ -35,6 +47,8 @@ async function loadHooks() {
     return {
       postCommitHook: extractHook(source, "postCommitHook"),
       postCheckoutHook: extractHook(source, "postCheckoutHook"),
+      postMergeHook: extractHook(source, "postMergeHook"),
+      postRewriteHook: extractHook(source, "postRewriteHook"),
     };
   }
 }
