@@ -3,6 +3,8 @@
 PCA is a local-first CLI that keeps project context, decisions, and AI handoff notes close to your code.
 It solves context drift between Git changes and AI agents.
 
+Builders using AI agents (Cursor, Claude, Codex, Gemini) lose project context between sessions. You repeat yourself. The agent forgets decisions. Prompts grow. PCA fixes that.
+
 ## Install
 
 ```bash
@@ -15,11 +17,15 @@ Requires Node.js >= 20.
 
 ```bash
 cd your-project
+pca setup
 pca init
 pca bootstrap
 pca context
 ```
 
+`pca setup` configures mode and API key.
+`pca init` initializes project memory.
+`pca bootstrap` fills project context interactively.
 `pca context` generates the current project context, copies it to your clipboard, and saves `.pca/last-context.md`.
 
 ## Commands
@@ -48,8 +54,14 @@ No manual commands needed.
 | `pca health` | Check context file sizes |
 | `pca doctor` | Diagnose PCA setup |
 | `pca forget` | Deprecate obsolete context |
+| `pca diff` | Show context diff |
+| `pca audit` | Audit context history |
+| `pca recovery` | Restore a deprecated context commit |
 | `pca sync` | Sync context to vector store |
 | `pca query "<query>"` | Query project memory |
+| `pca task "<task>"` | Generate agent-ready task context |
+| `pca setup` | Configure mode and API key |
+| `pca mcp` | Start MCP server |
 
 ### AUTH
 
