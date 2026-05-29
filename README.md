@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="assets/pca-banner.png" alt="PCA — Git for AI context" width="700"/>
+  <img src="https://raw.githubusercontent.com/thequantpartners/pca/main/assets/pca-banner.png" alt="PCA — Git for AI context" width="700"/>
 
 **PCA — Git for AI context**
 
