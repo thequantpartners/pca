@@ -1,4 +1,28 @@
+<div align="center">
+
+```
+    ◆
+   / \
+  ◆───◆
+```
+
+**PCA — Git for AI context**
+
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.1-green)](https://www.npmjs.com/package/@quantpartners/pca)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![Local-first](https://img.shields.io/badge/runs-local--first-black)]()
+[![No telemetry](https://img.shields.io/badge/no%20telemetry-%E2%9C%93-lightgrey)]()
+
+[Quick Start](#quick-start) · [What is PCA?](#what-is-pca) · [Commands](#commands) · [How it works](#how-it-works) · [Git Sync](#git-sync) · [License](#license)
+
+</div>
+
+---
+
 # PCA — Git for AI context
+
+<a name="what-is-pca"></a>
 
 PCA is a local-first CLI that keeps project context, decisions, and AI handoff notes close to your code.
 It solves context drift between Git changes and AI agents.
