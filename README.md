@@ -5,7 +5,7 @@
 **PCA — Git for AI context**
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.1-green)](https://www.npmjs.com/package/@quantpartners/pca)
+[![Version](https://img.shields.io/badge/version-1.1.5-green)](https://www.npmjs.com/package/@quantpartners/pca)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![Local-first](https://img.shields.io/badge/runs-local--first-black)]()
 [![No telemetry](https://img.shields.io/badge/no%20telemetry-%E2%9C%93-lightgrey)]()
