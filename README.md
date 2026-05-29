@@ -1,10 +1,6 @@
 <div align="center">
 
-```
-    ◆
-   / \
-  ◆───◆
-```
+  <img src="assets/pca-banner.png" alt="PCA — Git for AI context" width="700"/>
 
 **PCA — Git for AI context**
 
