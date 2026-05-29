@@ -64,7 +64,13 @@ async function chooseCommit(commits: CommitRecord[]): Promise<CommitRecord | und
     );
   }
 
-  const selected = Number.parseInt((await promptText("Selecciona número: ")).trim(), 10);
+  const raw = (await promptText("Selecciona número: ")).trim();
+  if (!raw) {
+    console.log("Cancelled.");
+    process.exitCode = 0;
+    process.exit(0);
+  }
+  const selected = Number.parseInt(raw, 10);
   if (!Number.isInteger(selected) || selected < 1 || selected > commits.length) {
     throw new Error("Invalid commit selection.");
   }

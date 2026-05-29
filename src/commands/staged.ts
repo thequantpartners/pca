@@ -112,8 +112,11 @@ async function requireProject(): Promise<void> {
 function stagedCommitAtIndex(rawIndex: string): ReturnType<typeof getStagedCommits>[number] {
   const index = Number.parseInt(rawIndex, 10);
   const commits = getStagedCommits();
+  if (index === 0) {
+    throw new Error("Index starts at 1. Use 'pca staged list' to see valid indexes.");
+  }
   if (!Number.isInteger(index) || index < 1 || index > commits.length) {
-    throw new Error("Invalid staged commit index.");
+    throw new Error(`Invalid staged commit index. Use 'pca staged list' to see valid indexes (1–${commits.length}).`);
   }
 
   return commits[index - 1];
