@@ -35,7 +35,8 @@ export function registerLogsCommand(program: Command): void {
 
       for (const commit of commits) {
         const deprecated = commit.status === "deprecated" ? "[deprecated] " : "";
-        console.log(`${deprecated}${commit.timestamp}  ${commit.id}  [${commit.type}] ${commit.message}`);
+        const date = new Date(commit.timestamp).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+        console.log(`${deprecated}${date}  ${commit.id}  [${commit.type}] ${commit.message}`);
       }
     });
 }
