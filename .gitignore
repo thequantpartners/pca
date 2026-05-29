@@ -3,6 +3,9 @@ dist/
 .env
 .pca/auth.json
 .pca/secrets.json
+.pca/pca.db
+.pca/last-context.md
+.pca/last-task-context.md
 *.tgz
 *.log
 .DS_Store
