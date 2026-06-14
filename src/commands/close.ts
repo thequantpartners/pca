@@ -1,134 +1,144 @@
 import path from "node:path";
-import { stdin as input, stdout as output } from "node:process";
-import { createInterface, type Interface } from "node:readline/promises";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { getProjectRoot, loadConfig } from "../core/config.js";
 import { dateStamp, timestampForLog } from "../core/files.js";
-
-let nonInteractivePromptLines: string[] | undefined;
+import { appendContextCommit } from "../core/context-commits.js";
+import { promptText } from "../core/prompt.js";
 
 export function registerCloseCommand(program: Command): void {
   program
     .command("close")
-    .description("Close a confirmed PCA task and mark memory as needing sync")
-    .action(async () => {
+    .description("Automatiza el cierre de una tarea, actualizando roadmap, changelog y sync-log")
+    .argument("[message]", "Mensaje de cierre de la tarea")
+    .action(async (message: string | undefined) => {
       const root = getProjectRoot();
       await loadConfig(root);
 
-      const lastContextPath = path.join(root, ".pca", "last-task-context.md");
-      if (await fs.pathExists(lastContextPath)) {
-        const lastContext = await fs.readFile(lastContextPath, "utf8");
-        console.log(chalk.cyan("Last task context found: .pca/last-task-context.md"));
-        const task = extractTask(lastContext);
-        if (task) {
-          console.log(`Task: ${task}`);
-        }
-      } else {
-        console.log(chalk.yellow("No .pca/last-task-context.md found. Continuing with manual closure."));
+      const activeTaskPath = path.join(root, "pca", "state", "active-task.md");
+      if (!(await fs.pathExists(activeTaskPath))) {
+        console.error(chalk.red("Error: No se encontró una tarea activa en pca/state/active-task.md"));
+        process.exitCode = 1;
+        return;
       }
 
-      console.log(chalk.bold("Closure requires explicit user confirmation with YES."));
-
-      const rl = input.isTTY ? createInterface({ input, output }) : undefined;
-      try {
-        const confirmed = await promptClosureInput(rl, "Was the task completed and confirmed with YES? (YES/no) ");
-        const normalizedConfirmation = confirmed.trim().toLowerCase();
-
-        if (!normalizedConfirmation) {
-          failIncompleteClosure();
+      let closeMessage = message?.trim();
+      if (!closeMessage) {
+        closeMessage = await promptText(chalk.cyan("Mensaje de cierre: "));
+        closeMessage = closeMessage.trim();
+        if (!closeMessage) {
+          console.error(chalk.red("Error: El mensaje de cierre es requerido."));
+          process.exitCode = 1;
           return;
         }
-
-        if (!["yes", "y"].includes(normalizedConfirmation)) {
-          console.log("Closure cancelled. No PCA files were updated.");
-          return;
-        }
-
-        const change = await promptClosureInput(rl, "Brief description of the completed change: ");
-        const normalizedChange = change.trim();
-
-        if (!normalizedChange) {
-          failIncompleteClosure();
-          return;
-        }
-
-        await appendChangelog(root, normalizedChange);
-        await appendRoadmapDone(root, normalizedChange);
-        await appendSyncRequired(root);
-
-        console.log(chalk.green("PCA closure recorded."));
-        console.log("Next step: pca sync");
-      } finally {
-        rl?.close();
       }
+
+      console.log(chalk.blue("Actualizando roadmap.md..."));
+      await updateRoadmap(root);
+
+      console.log(chalk.blue("Actualizando changelog.md..."));
+      await updateChangelog(root, closeMessage);
+
+      console.log(chalk.blue("Registrando commit de contexto..."));
+      const commitMessage = `docs: close task and update context logs - ${closeMessage}`;
+      const commit = await appendContextCommit(root, commitMessage, "general");
+
+      console.log(chalk.blue("Actualizando sync-log.md..."));
+      await updateSyncLog(root, closeMessage, commit.id);
+
+      console.log(chalk.green("\nTarea cerrada exitosamente."));
+      console.log(`Commit ID: ${commit.id}`);
+      console.log("Recuerda ejecutar `pca sync` si corresponde.");
     });
 }
 
-async function promptClosureInput(rl: Interface | undefined, question: string): Promise<string> {
-  if (rl) {
-    try {
-      return await rl.question(question);
-    } catch {
-      return "";
+async function updateRoadmap(root: string): Promise<void> {
+  const filePath = path.join(root, "pca", "state", "roadmap.md");
+  if (!(await fs.pathExists(filePath))) {
+    return;
+  }
+
+  const content = await fs.readFile(filePath, "utf8");
+  const lines = content.split(/\r?\n/);
+  
+  let inProcessIndex = -1;
+  let doneIndex = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim().toLowerCase();
+    if (line.startsWith("## in process")) inProcessIndex = i;
+    if (line.startsWith("## done")) doneIndex = i;
+  }
+
+  if (inProcessIndex === -1) return;
+
+  // Encontrar tareas en ## In Process
+  const newLines = [...lines];
+  const tasksToMove: string[] = [];
+  
+  let i = inProcessIndex + 1;
+  while (i < newLines.length && !newLines[i].startsWith("##")) {
+    if (newLines[i].match(/^\s*-\s*\[\s\]/)) {
+      tasksToMove.push(newLines[i].replace(/\[\s\]/, "[x]"));
+      newLines.splice(i, 1);
+    } else {
+      i++;
     }
   }
 
-  output.write(question);
-  nonInteractivePromptLines ??= splitPromptInput(await readNonInteractiveStdin());
-  return nonInteractivePromptLines.shift() ?? "";
-}
+  if (tasksToMove.length === 0) return;
 
-async function readNonInteractiveStdin(): Promise<string> {
-  let value = "";
-  for await (const chunk of input) {
-    value += chunk.toString();
+  // Insertar en ## Done
+  // Si no existe ## Done, lo creamos al final
+  if (doneIndex === -1) {
+    newLines.push("");
+    newLines.push("## Done");
+    doneIndex = newLines.length - 1;
+  } else {
+    // Buscar si doneIndex cambió por el splice
+    doneIndex = newLines.findIndex(line => line.trim().toLowerCase().startsWith("## done"));
   }
 
-  return value;
+  newLines.splice(doneIndex + 1, 0, ...tasksToMove);
+
+  await fs.writeFile(filePath, newLines.join("\n"), "utf8");
 }
 
-function splitPromptInput(value: string): string[] {
-  if (!value) {
-    return [];
-  }
-
-  return value.split(/\r?\n/u);
-}
-
-function failIncompleteClosure(): void {
-  console.error("Closure incomplete. Run pca close again to confirm.");
-  process.exitCode = 1;
-}
-
-async function appendChangelog(root: string, change: string): Promise<void> {
+async function updateChangelog(root: string, message: string): Promise<void> {
   const filePath = path.join(root, "pca", "state", "changelog.md");
+  let content = "";
+  if (await fs.pathExists(filePath)) {
+    content = await fs.readFile(filePath, "utf8");
+  }
+
+  const lines = content ? content.split(/\r?\n/) : [];
+  let unreleasedIndex = lines.findIndex(line => line.trim().toLowerCase() === "## [unreleased]");
+
+  const newEntry = `- ${message} (${dateStamp()})`;
+
+  if (unreleasedIndex === -1) {
+    lines.unshift("## [Unreleased]", newEntry, "");
+  } else {
+    lines.splice(unreleasedIndex + 1, 0, newEntry);
+  }
+
   await fs.ensureDir(path.dirname(filePath));
-  await fs.appendFile(filePath, `## ${dateStamp()}\n- ${change}\n\n`, "utf8");
+  await fs.writeFile(filePath, lines.join("\n"), "utf8");
 }
 
-async function appendRoadmapDone(root: string, change: string): Promise<void> {
-  const filePath = path.join(root, "pca", "state", "roadmap.md");
-  await fs.ensureDir(path.dirname(filePath));
-  await fs.appendFile(filePath, `\n## Closure ${dateStamp()}\n- Done: ${change}\n`, "utf8");
-}
-
-async function appendSyncRequired(root: string): Promise<void> {
+async function updateSyncLog(root: string, message: string, commitId: string): Promise<void> {
   const filePath = path.join(root, "pca", "rag", "sync-log.md");
   await fs.ensureDir(path.dirname(filePath));
-  await fs.appendFile(filePath, `## ${timestampForLog()}\n- Closure recorded\n- Sync required: run \`pca sync\`\n\n`, "utf8");
-}
+  
+  const entry = [
+    `## ${timestampForLog()}`,
+    `- Task closed: ${message}`,
+    `- Commit Type: general`,
+    `- Commit ID: ${commitId}`,
+    `- Sync required: run \`pca sync\``,
+    ""
+  ].join("\n");
 
-function extractTask(context: string): string | undefined {
-  const lines = context.split(/\r?\n/);
-  const taskHeadingIndex = lines.findIndex((line) => line.trim() === "## Task");
-  if (taskHeadingIndex === -1) {
-    return undefined;
-  }
-
-  return lines
-    .slice(taskHeadingIndex + 1)
-    .map((line) => line.trim())
-    .find(Boolean);
+  await fs.appendFile(filePath, entry + "\n", "utf8");
 }

@@ -3,6 +3,7 @@ import path from "node:path";
 import clipboard from "clipboardy";
 import { Command } from "commander";
 import fs from "fs-extra";
+import chalk from "chalk";
 import { getProjectRoot } from "../core/config.js";
 import { readContextCommits } from "../core/context-commits.js";
 
@@ -15,8 +16,22 @@ export function registerContextCommand(program: Command): void {
   program
     .command("context")
     .description("Generate current project context, copy it to clipboard, and save it locally")
-    .action(async () => {
+    .option("-p, --prompt", "Generate an LLM-optimized system prompt context")
+    .action(async (options: { prompt?: boolean }) => {
       const root = getProjectRoot();
+
+      if (options.prompt) {
+        const promptContext = await buildPromptContext(root);
+        await clipboard.write(promptContext);
+
+        const chars = promptContext.length;
+        const tokens = Math.round(chars / 4);
+        
+        console.log(chalk.green(`\nSystem Prompt copiado al portapapeles exitosamente.`));
+        console.log(chalk.cyan(`Estadísticas: ${chars} caracteres, ~${tokens} tokens estimados.\n`));
+        return;
+      }
+
       const markdown = await buildCurrentProjectContext(root);
       const outputPath = path.join(root, ".pca", "last-context.md");
 
@@ -26,6 +41,40 @@ export function registerContextCommand(program: Command): void {
 
       console.log("Context copied to clipboard.");
     });
+}
+
+async function buildPromptContext(root: string): Promise<string> {
+  const parts: string[] = [];
+  
+  parts.push("You are an AI assistant working on the following project.");
+  parts.push("Please adhere to the context and rules below strictly.\n");
+
+  const addFile = async (filePath: string, label: string) => {
+    const fullPath = path.join(root, filePath);
+    if (await fs.pathExists(fullPath)) {
+      let content = await fs.readFile(fullPath, "utf8");
+      // Minify logic: remove multiple empty lines
+      content = content.replace(/\n\s*\n/g, "\n").trim();
+      parts.push(`<${label}>\n${content}\n</${label}>\n`);
+    }
+  };
+
+  await addFile("PCA_INDEX.md", "pca_index");
+  await addFile("AGENTS.md", "agents_rules");
+
+  const corePath = path.join(root, "pca", "core");
+  if (await fs.pathExists(corePath)) {
+    const files = await fs.readdir(corePath);
+    for (const file of files) {
+      if (file.endsWith(".md")) {
+        await addFile(path.posix.join("pca/core", file), `core_file_${file.replace(".md", "")}`);
+      }
+    }
+  }
+
+  await addFile("pca/state/active-task.md", "active_task");
+
+  return parts.join("\n");
 }
 
 async function buildCurrentProjectContext(root: string): Promise<string> {

@@ -57,7 +57,16 @@ pca context
 | `pca init` | Initialize project memory |
 | `pca bootstrap` | Fill project context interactively |
 | `pca context` | Generate project context and copy to clipboard |
+| `pca context --prompt` | Generate an LLM-optimized context prompt |
 | `pca commit "<msg>"` | Record a context milestone |
+| `pca close "<msg>"` | Automate closing active tasks and update roadmap |
+
+## 🤖 Instructions for AI Agents
+If a user tells you to "use this repo" or "work on this task", follow this protocol:
+1. **Read Context First**: Run `pca context --prompt` (or ask the user to run it) and read the output carefully. This gives you the system prompt and operational rules.
+2. **Follow `AGENTS.md`**: Do exactly what the agent rules say. Only modify code after understanding the architectural decisions.
+3. **Commit Context**: When making significant changes or decisions, prompt the user to run `pca commit` to save the memory.
+4. **Close Tasks**: When a task is fully complete and validated, instruct the user to run `pca close` (or run it yourself if you have CLI execution tools) to automatically update the roadmap, changelog, and sync logs.
 | `pca staged` | Manage staged context commits |
 | `pca logs` | List context history |
 | `pca status` | Show project and context state |
