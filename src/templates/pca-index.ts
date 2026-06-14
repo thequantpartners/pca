@@ -1,38 +1,30 @@
 export function pcaIndexTemplate(projectName: string): string {
-  return `# PCA Index
+  return `# PCA Index — ${projectName}
 
-## Project
-Name: ${projectName}
-Type: [unknown]
-Stage: greenfield
+## Project Metadata
+- Name: ${projectName}
+- Type: [unknown]
+- Stage: greenfield
+- Active Objective: [Define active objective]
 
-## Active Objective
-[Define current objective]
-
-## Critical Runtime Rule
-Do not read the entire PCA folder by default.
-
-Canonical markdown files are the source of truth.
-Vector memory is the mandatory access layer.
-The agent must retrieve only task-relevant context before acting.
+## Critical Runtime Rules
+- Do not read the entire \`pca/\` folder by default.
+- Canonical markdown files are the source of truth.
+- Vector memory is the mandatory access layer.
+- The agent must retrieve only task-relevant context before acting.
 
 ## Required Entry Flow
-1. Read this file only.
-2. Classify the task.
-3. Use PCA retrieval.
-4. Work with retrieved context.
+1. Run \`pca status\` and read this file (\`PCA_INDEX.md\`) first.
+2. Classify the task type.
+3. Use PCA retrieval context.
+4. Work only with retrieved context.
 5. Update memory only after confirmed completion.
 
-## Core Files
-- \`pca/core/project-brief.md\`
-- \`pca/core/product-context.md\`
-- \`pca/core/architecture.md\`
-- \`pca/core/stack.md\`
-- \`pca/state/active-task.md\`
-- \`pca/state/roadmap.md\`
-- \`pca/state/changelog.md\`
-- \`pca/state/active-decisions.md\`
-- \`pca/visual/visual-index.md\`
+## Core File Mapping
+- **Core Context**: \`pca/core/\` (e.g., project-brief.md, product-context.md, architecture.md, stack.md)
+- **Project State**: \`pca/state/\` (e.g., roadmap.md, changelog.md, active-decisions.md)
+- **Visual Memory**: \`pca/visual/\` (e.g., screenshots/, mockups/)
+- **RAG Configuration**: \`pca/rag/\` (e.g., sync-log.md)
 
 ## Retrieval Limits
 - Simple task: 3 chunks
@@ -43,10 +35,9 @@ The agent must retrieve only task-relevant context before acting.
 
 ## Closure Policy
 Only after explicit user confirmation with \`SI\`:
-1. update roadmap
-2. update changelog
-3. update active decisions if needed
-4. update ADR/PRD if needed
-5. sync changed files to vector memory
+1. Update roadmap (\`pca/state/roadmap.md\`)
+2. Update changelog (\`pca/state/changelog.md\`)
+3. Update active decisions (\`pca/state/active-decisions.md\`) if needed
+4. Sync changed files to vector memory (\`pca/rag/sync-log.md\`)
 `;
 }

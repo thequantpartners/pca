@@ -185,7 +185,7 @@ try {
   });
 
   const allLogs = runCli(["logs", "--last", "10"]);
-  const recordedCommits = (allLogs.output.match(/\d{4}-\d{2}-\d{2}T/g) ?? []).length;
+  const recordedCommits = (allLogs.output.match(/\d{14}-[0-9a-fA-F]{8}/g) ?? []).length;
   if (recordedCommits < 6) {
     fail("Check context commit SQLite records", `Expected at least 6 context commits, found ${recordedCommits}.`, allLogs);
   }

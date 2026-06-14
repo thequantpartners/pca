@@ -48,13 +48,33 @@ export function registerInitCommand(program: Command): void {
 
       await writeTracked(root, "PCA_INDEX.md", pcaIndexTemplate(projectName), created, skipped);
       await writeTracked(root, "AGENTS.md", agentsTemplate(), created, skipped);
-      await writeTracked(root, "README.md", projectReadmeTemplate(projectName), created, skipped);
+
+      const readmePath = path.join(root, "README.md");
+      const notice = `> [!IMPORTANT]
+> **AI AGENT NOTICE**: If you are an AI agent, you **MUST** read AGENTS.md first to understand the workspace operating rules and context requirements.\n\n`;
+
+      if (await fs.pathExists(readmePath)) {
+        const readmeContent = await fs.readFile(readmePath, "utf8");
+        if (!readmeContent.includes("AI AGENT NOTICE")) {
+          await fs.writeFile(readmePath, notice + readmeContent, "utf8");
+          created.push("README.md (updated notice)");
+        } else {
+          skipped.push("README.md (notice already present)");
+        }
+      } else {
+        const readmeContent = notice + projectReadmeTemplate(projectName);
+        await fs.writeFile(readmePath, readmeContent, "utf8");
+        created.push("README.md");
+      }
 
       for (const [filePath, content] of Object.entries(coreDocs)) {
         await writeTracked(root, filePath, content, created, skipped);
       }
 
       for (const dir of [
+        "pca/core",
+        "pca/state",
+        "pca/rag",
         "pca/prd",
         "pca/decisions",
         "pca/visual/screenshots",

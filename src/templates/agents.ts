@@ -5,19 +5,22 @@ export function agentsTemplate(): string {
 AI Solutions Architect / Senior Software Engineer.
 
 ## PCA Rule
-Before starting any task, read only:
+Before starting any task, run \`pca status\` and read only:
 
 \`PCA_INDEX.md\`
 
 Do not read the full \`pca/\` folder by default.
 
 ## Mandatory Context Flow
-1. Read \`PCA_INDEX.md\`.
+1. Run \`pca status\` and read \`PCA_INDEX.md\`.
 2. Identify task type.
 3. Use PCA retrieval context.
 4. Work only with retrieved context + directly relevant code files.
 5. Never invent project decisions.
 6. Never update roadmap/changelog before closure.
+
+## Detailed Crash Reporting Flow
+If the system or a command encounters a failure, report a detailed crash description (in JSON format if the project CLI supports it).
 
 ## RAG Requirement
 PCA requires vector retrieval.

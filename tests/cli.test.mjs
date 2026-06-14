@@ -779,12 +779,46 @@ test("init creates local memory project without auth or OpenAI", () => {
   assert.ok(fs.existsSync(path.join(root, "AGENTS.md")));
   assert.ok(fs.existsSync(path.join(root, "pca")));
 
+  // Verify core files under pca/
+  assert.ok(fs.existsSync(path.join(root, "pca", "core", "project-brief.md")));
+  assert.ok(fs.existsSync(path.join(root, "pca", "state", "roadmap.md")));
+  assert.ok(fs.existsSync(path.join(root, "pca", "rag", "sync-log.md")));
+
+  // Verify AGENTS.md templates
+  const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
+  assert.match(agents, /pca status/);
+  assert.match(agents, /Detailed Crash Reporting Flow/);
+
+  // Verify PCA_INDEX.md templates
+  const pcaIndex = fs.readFileSync(path.join(root, "PCA_INDEX.md"), "utf8");
+  assert.match(pcaIndex, /Core File Mapping/);
+
+  // Verify README.md notice
+  assert.ok(fs.existsSync(path.join(root, "README.md")));
+  const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+  assert.match(readme, /AI AGENT NOTICE/);
+
   const config = JSON.parse(fs.readFileSync(path.join(root, ".pca", "config.json"), "utf8"));
   assert.equal(config.vectorStoreId, "local-only");
 
   const status = runCli(["status"], { cwd: root, env });
   assert.equal(status.code, 0, status.stderr);
   assert.match(status.stdout, /Project: Initialized/);
+});
+
+test("init prepends notice to existing README.md", () => {
+  const root = tempDir("init-existing-readme");
+  const env = { PCA_HOME: tempDir("home") };
+
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, "README.md"), "# Existing Project\nMy project details.\n");
+
+  const result = runCli(["init"], { cwd: root, env });
+  assert.equal(result.code, 0, result.stderr);
+
+  const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+  assert.ok(readme.startsWith("> [!IMPORTANT]\n> **AI AGENT NOTICE**"));
+  assert.match(readme, /# Existing Project/);
 });
 
 test("commit records local context commits without auth or OpenAI", () => {
