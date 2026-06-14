@@ -41,6 +41,7 @@ Then use the generated compact context.
 * Prefer exact code changes over vague recommendations.
 * Validate before saying done.
 * For UI tasks, check visual memory first.
+* If major/important changes are made to the project, update README.md and AGENTS.md (if rules change). Do not update them for minor changes.
 
 ## Closure Rule
 
@@ -54,5 +55,6 @@ Only if the user replies exactly \`SI\`, update:
 * \`pca/state/changelog.md\`
 * \`pca/state/active-decisions.md\`
 * \`pca/rag/sync-log.md\`
+* \`README.md\` and \`AGENTS.md\` (if major/important changes were made)
 `;
 }

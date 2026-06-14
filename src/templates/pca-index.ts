@@ -39,5 +39,6 @@ Only after explicit user confirmation with \`SI\`:
 2. Update changelog (\`pca/state/changelog.md\`)
 3. Update active decisions (\`pca/state/active-decisions.md\`) if needed
 4. Sync changed files to vector memory (\`pca/rag/sync-log.md\`)
+5. Update \`README.md\` and \`AGENTS.md\` (if major/important changes were made)
 `;
 }
