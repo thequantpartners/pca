@@ -43,18 +43,21 @@ Then use the generated compact context.
 * For UI tasks, check visual memory first.
 * If major/important changes are made to the project, update README.md and AGENTS.md (if rules change). Do not update them for minor changes.
 
-## Closure Rule
-
-At the end ask:
+## Regla de Cierre (Closure Rule)
+Al finalizar una tarea de desarrollo o modificación de código, preguntar al usuario de forma exacta:
 
 ¿Doy esta tarea por terminada?
 
-Only if the user replies exactly \`SI\`, update:
+Solo si el usuario responde exactamente \`SI\`, actualizar los siguientes archivos:
+*   \`pca/state/roadmap.md\`
+*   \`pca/state/changelog.md\`
+*   \`pca/state/active-decisions.md\`
+*   \`pca/rag/sync-log.md\`
+*   \`README.md\` and \`AGENTS.md\` (if major/important changes were made)
 
-* \`pca/state/roadmap.md\`
-* \`pca/state/changelog.md\`
-* \`pca/state/active-decisions.md\`
-* \`pca/rag/sync-log.md\`
-* \`README.md\` and \`AGENTS.md\` (if major/important changes were made)
+Posteriormente, registrar el hito de cierre del contexto ejecutando:
+\`\`\`bash
+pca commit "docs: close task and update context logs"
+\`\`\`
 `;
 }
