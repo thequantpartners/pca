@@ -14,6 +14,9 @@
 
 </div>
 
+> [!IMPORTANT]
+> **AI AGENT NOTICE**: If you are an AI agent, you **MUST** read [AGENTS.md](file:///c:/Users/Ken%20Ryzen/Documents/proyectos-sass/PCA-CLI/AGENTS.md) first to understand the workspace operating rules and context requirements before executing tasks.
+
 ---
 
 # PCA — Git for AI context
